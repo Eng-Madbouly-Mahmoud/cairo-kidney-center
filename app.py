@@ -4,11 +4,10 @@ warnings.filterwarnings("ignore")
 from datetime import datetime
 from supabase import create_client, Client
 import pandas as pd
-import io
 import os
 
 # =========================================================
-# ⚙️ 1. إعدادات الصفحة الفاخرة المخصصة للمراكز الطبية الكبرى
+# ⚙️ 1. إعدادات الصفحة الفاخرة والمخصصة لمركز دكتور رشاد برسوم
 # =========================================================
 st.set_page_config(
     page_title="مركز دكتور رشاد برسوم - تحت الإنشاء", 
@@ -17,32 +16,42 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎨 2. هندسة الواجهة عبر الـ CSS المتقدم (الهوية الطبية الفاخرة)
+# 🎨 2. هندسة الواجهة عبر الـ CSS المتقدم وتكبير التابّات لتكون مريحة وعصرية
 st.markdown("""
     <style>
-        /* تثبيت الخلفية والألوان النظيفة للمستشفيات */
         :root { color-scheme: light !important; }
         .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; }
         
-        /* تصميم الهيدر الطبي الفاخر */
-        .medical-hero-banner {
-            background: linear-gradient(135deg, #0284C7 0%, #1E3A8A 100%);
-            padding: 30px;
-            border-radius: 16px;
+        /* تكبير وتحسين شكل التابّات (Tabs) لتكون بارزة وواضحة */
+        .stTabs [data-baseweb="tab-list"] {
+            gap: 15px;
+            background-color: #E2E8F0;
+            padding: 10px;
+            border-radius: 14px;
+        }
+        .stTabs [data-baseweb="tab"] {
+            height: 55px;
+            white-space: pre-wrap;
+            background-color: #FFFFFF;
+            border-radius: 10px;
+            gap: 12px;
+            padding-top: 10px;
+            padding-bottom: 10px;
+            padding-left: 24px;
+            padding-right: 24px;
+            font-size: 18px !important;
+            font-weight: 700 !important;
+            color: #1E3A8A !important;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .stTabs [aria-selected="true"] {
+            background: linear-gradient(135deg, #0284C7 0%, #1E3A8A 100%) !important;
             color: #FFFFFF !important;
-            box-shadow: 0 10px 25px rgba(2, 132, 199, 0.15);
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            box-shadow: 0 4px 15px rgba(2, 132, 199, 0.3);
         }
         
-        /* تحسين التبويبات والأزرار والخطوط */
-        h1, h2, h3, h4, .stMarkdown p, .stMarkdown span {
-            font-family: "Cairo", sans-serif !important;
-        }
-        
-        /* تجميل الأزرار لتكون تفاعلية ومريحة للمستخدم */
+        /* تجميل الأزرار */
         .stButton > button {
             background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%) !important;
             color: #FFFFFF !important;
@@ -59,7 +68,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 🔑 3. محرك الاتصال بقاعدة بيانات الهدى (المشروع المشترك)
+# 🔑 3. محرك الاتصال بقاعدة البيانات السحابية
 SUPABASE_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
 SUPABASE_KEY = st.secrets["SUPABASE_KEY"].strip()
 
@@ -70,10 +79,8 @@ def get_supabase_client() -> Client:
 supabase = get_supabase_client()
 
 # =========================================================
-# 📥 محركات وقنوات معالجة البيانات السحابية (CRUD Database Engine)
+# 📥 دوام وسجلات جلب وحفظ البيانات (المرضى فقط لمركز دكتور رشاد)
 # =========================================================
-
-# --- قنوات موديول المرضى والعيادات الكلوية ---
 def load_appointments():
     try:
         response = supabase.table("appointments").select("*").order("id", desc=False).execute()
@@ -96,47 +103,20 @@ def update_appointment_in_db(app_id, fields):
     except Exception:
         return False
 
-# --- قنوات موديول تكنولوجيا المعلومات والشبكات المشتركة (IT Support) ---
-def load_it_tickets():
-    try:
-        response = supabase.table("tickets").select("*").order("id", desc=False).execute()
-        return response.data or []
-    except Exception:
-        return []
-
-def insert_it_ticket(new_ticket):
-    try:
-        supabase.table("tickets").insert(new_ticket).execute()
-        return True
-    except Exception as e:
-        st.error(f"خطأ في إرسال بلاغ الـ IT: {e}")
-        return False
-
 # =========================================================
-# 🎛️ 4. المزامنة المباشرة وتهيئة الذاكرة التلقائية
+# 🎛️ 4. تهيئة الذاكرة التلقائية وترقيم الملفات
 # =========================================================
 if 'appointments' not in st.session_state:
     st.session_state.appointments = load_appointments()
-if 'it_tickets' not in st.session_state:
-    st.session_state.it_tickets = load_it_tickets()
 
-# ترقيم الحجوزات الطبية
 if 'patient_next_id' not in st.session_state:
     if st.session_state.appointments:
         st.session_state.patient_next_id = max([int(a['id']) for a in st.session_state.appointments]) + 1
     else:
         st.session_state.patient_next_id = 5001
 
-# ترقيم بلاغات الـ IT للأعطال التقنية
-if 'it_next_id' not in st.session_state:
-    if st.session_state.it_tickets:
-        st.session_state.it_next_id = max([int(t['id']) for t in st.session_state.it_tickets]) + 1
-    else:
-        st.session_state.it_next_id = 101
-
-
 # =========================================================
-# 🏥 5. هيدر الواجهة الاحترافية الكبرى وعرض اللوجو الدائري
+# 🏥 5. هيدر الواجهة الاحترافية (اللوجو واسم المركز تحت الإنشاء)
 # =========================================================
 col_logo, col_banner = st.columns([1, 4])
 
@@ -144,23 +124,22 @@ with col_logo:
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
     else:
-        st.markdown("<h1 style='font-size: 90px; text-align: center; margin: 0;'>🩺</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='font-size: 80px; text-align: center; margin: 0;'>🩺</h1>", unsafe_allow_html=True)
 
 with col_banner:
     st.markdown("""
         <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 22px; border-radius: 12px; border-right: 8px solid #0284C7;'>
             <h1 style='margin: 0; color: #1E3A8A !important; font-size: 26px; font-weight: bold;'>مركز دكتور رشاد برسوم - (تحت الإنشاء)</h1>
-            <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px; font-weight: 600;'>المنظومة السحابية الموحدة لإدارة العيادات التخصصية وجلسات الغسيل الكلوي والدعم التقني المتكامل</p>
+            <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px; font-weight: 600;'>المنظومة السحابية الموحدة لإدارة عيادات أمراض الكلى وجلسات الغسيل الكلوي المتكاملة</p>
         </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# تبويبات الأنظمة المشتركة في الواجهة الحديثة
-main_tab1, main_tab2, main_tab3 = st.tabs([
+# تبويبات النظام الكبرى (بحجم كبير وواضح)
+main_tab1, main_tab2 = st.tabs([
     "📝 عيادات فحص المرضى والحجوزات", 
-    "🩺 عيادة الأطباء والسجلات السحابية", 
-    "⚙️ تكنولوجيا المعلومات والدعم الفني للعيادات (IT Modules)"
+    "🩺 عيادة الأطباء والسجلات السحابية (د. رفيق)"
 ])
 
 # =========================================================
@@ -173,7 +152,7 @@ with main_tab1:
         with p1: name = st.text_input("👤 اسم المريض ثلاثي (Patient Name):")
         with p2: phone = st.text_input("📞 رقم الهاتف المحمول:")
         
-        doctor = st.selectbox("🩺 العيادة الطبية والاستشاري المسؤول:", [
+        doctor = st.selectbox("🩺 الطبيب المعالج المسؤول:", [
             "أ.د. رفيق - استشاري أمراض وزرع الكلى",
             "د. رفيق - أخصائي أمراض الكلى ومتابعة وظائف الكلى"
         ])
@@ -204,7 +183,7 @@ with main_tab1:
 # 2️⃣ عيادة الأطباء والسجلات السحابية (التبويب الثاني)
 # =========================================================
 with main_tab2:
-    st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية للأطباء</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية (د. رفيق)</h3>", unsafe_allow_html=True)
     pass_doctor = st.text_input("🔑 أدخل كلمة مرور الإدارة الطبية المعتمدة للعيادة:", type="password", key="doc_pass")
     
     if pass_doctor == "1234":
@@ -220,7 +199,7 @@ with main_tab2:
             p_ids = [int(a['id']) for a in st.session_state.appointments]
             
             with st.form("doctor_update_form"):
-                sel_id = st.selectbox("اختر رقم الملف الطبي للمريض المكتشف:", p_ids)
+                sel_id = st.selectbox("اختر رقم الملف الطبي للمريض:", p_ids)
                 new_status = st.selectbox("الحالة الطبية الحالية:", ["Examined (تم الفحص وصرف العلاج) ✅", "In Progress (داخل غرفة الكشف الحين) ⚙️"])
                 medicines = st.text_input("العلاج والروشتة أو تحديث التشخيص الطبي:")
                 
@@ -229,54 +208,4 @@ with main_tab2:
                     fields = {
                         "status": new_status,
                         "notes": medicines if medicines.strip() else "متابعة مستقرة",
-                        "updated_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
-                    }
-                    if update_appointment_in_db(sel_id, fields):
-                        st.success("✅ تم تحديث بيانات المريض بنجاح في قاعدة البيانات السحابية.")
-                        st.session_state.appointments = load_appointments()
-                        st.rerun()
-                    else:
-                        st.error("❌ حدث خطأ أثناء التحديث السحابي.")
-        else:
-            st.info("لا توجد حجوزات مسجلة حالياً.")
-    elif pass_doctor:
-        st.error("❌ كلمة المرور غير صحيحة.")
-
-# =========================================================
-# 3️⃣ تكنولوجيا المعلومات والدعم الفني للعيادات (التبويب الثالث)
-# =========================================================
-with main_tab3:
-    st.markdown("<h3 style='color: #0284C7;'>⚙️ تسجيل بلاغات الدعم التقني وأعطال الأجهزة الطبية</h3>", unsafe_allow_html=True)
-    with st.form("it_ticket_form", clear_on_submit=True):
-        t1, t2 = st.columns(2)
-        with t1: reporter = st.text_input("👤 اسم المُبلغ أو القسم الطبي:")
-        with t2: device = st.text_input("💻 اسم الجهاز أو العطل التقني:")
-        
-        issue_desc = st.text_area("📋 تفاصيل المشكلة أو العطل التقني:")
-        submit_it = st.form_submit_button("🚀 إرسال البلاغ لفريق الدعم الفني")
-        
-        if submit_it:
-            if reporter.strip() and device.strip():
-                ticket_payload = {
-                    "id": int(st.session_state.it_next_id),
-                    "reporter": reporter,
-                    "device": device,
-                    "description": issue_desc,
-                    "status": "Open (مفتوح) ⏳",
-                    "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
-                }
-                if insert_it_ticket(ticket_payload):
-                    st.session_state.it_tickets = load_it_tickets()
-                    st.success(f"🛠️ تم تسجيل بلاغ الدعم الفني برقم: #{st.session_state.it_next_id}")
-                    st.session_state.it_next_id += 1
-                    st.rerun()
-            else:
-                st.error("❌ يرجى ملء اسم المُبلغ واسم الجهاز.")
-                
-    st.markdown("---")
-    st.markdown("#### 📋 قائمة بلاغات الدعم الفني الحالية:")
-    st.session_state.it_tickets = load_it_tickets()
-    if st.session_state.it_tickets:
-        st.dataframe(pd.DataFrame(st.session_state.it_tickets), use_container_width=True)
-    else:
-        st.info("لا توجد بلاغات تقنية مسجلة حالياً.")
+                        "updated_at": datetime.now().strftime("%Y-%
