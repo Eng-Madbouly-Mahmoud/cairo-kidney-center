@@ -141,6 +141,7 @@ if 'it_next_id' not in st.session_state:
 col_logo, col_banner = st.columns([1, 4])
 
 with col_logo:
+    # سيقوم النظام بقراءة اللوجو الرسمي الدائري فور رفعه باسم logo.png
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
     else:
@@ -189,4 +190,47 @@ with main_tab1:
                     "phone": phone,
                     "doctor_name": doctor,
                     "status": "Pending (في الانتظار) ⏳",
-                    "notes": notes if notes.strip() else "فحص دوري لوظ
+                    "notes": notes if notes.strip() else "Routine Kidney Checkup",
+                    "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+                    "updated_at": "لم تُحدث بعد"
+                }
+                if insert_appointment(payload):
+                    st.session_state.appointments = load_appointments()
+                    st.success(f"🎉 تم حجز التذكرة بنجاح! رقم الملف الطبي الموحد للمريض هو: #{st.session_state.patient_next_id}")
+                    st.session_state.patient_next_id += 1
+                    st.rerun()
+            else:
+                st.error("❌ حماية: يرجى ملء اسم المريض ورقم الهاتف المحمول لإتمام الحجز السحابي.")
+
+# =========================================================
+# 2️⃣ عيادة الأطباء والسجلات السحابية (التبويب الثاني)
+# =========================================================
+with main_tab2:
+    st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية للأطباء</h3>", unsafe_allow_html=True)
+    pass_doctor = st.text_input("🔑 أدخل كلمة مرور الإدارة الطبية المعتمدة للعيادة:", type="password")
+    
+    if pass_doctor == "1234":
+        st.success("🔓 تم مصادقة الصلاحية الطبية الحساسة.")
+        st.session_state.appointments = load_appointments()
+        
+        if st.session_state.appointments:
+            df_app = pd.DataFrame(st.session_state.appointments)
+            st.dataframe(df_app, use_container_width=True)
+            
+            st.markdown("---")
+            st.markdown("#### 🩺 تحديث حالة الفحص الطبي وإصدار الروشتة السحابية:")
+            p_ids = [int(a['id']) for a in st.session_state.appointments]
+            
+            with st.form("doctor_update_form"):
+                sel_id = st.selectbox("اختر رقم الملف الطبي للمريض المكتشف:", p_ids)
+                new_status = st.selectbox("الحالة الطبية الحالية:", ["Examined (تم الفحص وصرف العلاج) ✅", "In Progress (داخل غرفة الكشف الحين) ⚙️"])
+                medicines = st.text_input("العلاج والروشتة أو تحديث التشخيص الطبي:")
+                
+                submit_doc = st.form_submit_button("🔄 تحديث وحفظ الملف الطبي للمريض فوراً")
+                if submit_doc:
+                    fields = {
+                        "status": new_status,
+                        "notes": medicines if medicines.strip() else "Stable Follow-up",
+                        "updated_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
+                    }
+                    if update_appointment_in_db(sel_id, fields):
