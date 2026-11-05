@@ -277,10 +277,10 @@ with main_tab3:
             if reporter.strip() and device.strip():
                 ticket_payload = {
                     "id": int(st.session_state.it_next_id),
-                    "reporter": reporter,
+                    "name": reporter,      # مطبق حسب الأعمدة الشائعة في جدول tickets
                     "device": device,
-                    "description": issue_desc,
-                    "status": "Open (مفتوح) ⏳",
+                    "issue": issue_desc,   # تم التعديل لتتوافق مع اسم عمود المشكلة في قاعدة البيانات
+                    "status": "Pending (قيد الانتظار) ⏳",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                 }
                 if insert_it_ticket(ticket_payload):
