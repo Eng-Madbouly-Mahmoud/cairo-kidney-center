@@ -4,6 +4,7 @@ warnings.filterwarnings("ignore")
 from datetime import datetime
 from supabase import create_client, Client
 import pandas as pd
+import io
 import os
 
 # =========================================================
@@ -173,7 +174,7 @@ main_tab3, main_tab2, main_tab1 = st.tabs([
 ])
 
 # =========================================================
-# 1️⃣ تكنولوجيا المعلومات والدعم الفني (التبويب الأول على اليسار - تذاكر الأعطال)
+# 1️⃣ تكنولوجيا المعلومات والدعم الفني (تذاكر الأعطال)
 # =========================================================
 with main_tab3:
     st.markdown("<h3 style='color: #0284C7;'>⚙️ تسجيل وتتبع بلاغات وأعطال الأجهزة الطبية</h3>", unsafe_allow_html=True)
@@ -188,7 +189,6 @@ with main_tab3:
         
         if submit_it:
             if reporter.strip() and device.strip():
-                # تم دمج بيانات الجهاز والمشكلة في عمود 'issue' المتوافق مع الجدول لتفادي أي أخطاء
                 full_issue_text = f"الجهاز: {device} | التفاصيل: {issue_desc if issue_desc.strip() else 'لا توجد تفاصيل'}"
                 ticket_payload = {
                     "id": int(st.session_state.it_next_id),
@@ -206,23 +206,23 @@ with main_tab3:
                 st.error("❌ يرجى ملء اسم المُبلغ واسم الجهاز لإرسال البلاغ.")
                 
     st.markdown("---")
-    st.markdown("#### 📋 سجل تذاكر البلاغات والاتصالات الفنية المسلسلة:")
+    st.markdown("##### 📋 سجل تذاكر البلاغات والاتصالات الفنية المسلسلة بالمركز")
     st.session_state.it_tickets = load_it_tickets()
     if st.session_state.it_tickets:
-        df_tickets = pd.DataFrame(st.session_state.it_tickets)
-        st.dataframe(df_tickets, use_container_width=True)
+        df_it = pd.DataFrame(st.session_state.it_tickets)
+        st.dataframe(df_it[["id", "name", "issue", "status", "created_at"]], use_container_width=True)
     else:
-        st.info("لا توجد بلاغات تقنية مسجلة حالياً.")
+        st.info("ℹ️ لا توجد بلاغات أعطال تقنية مسجلة حالياً.")
 
 # =========================================================
-# 2️⃣ عيادة الأطباء والسجلات السحابية (التبويب الثاني - محمي بكلمة مرور 1234)
+# 2️⃣ عيادة الأطباء والسجلات السحابية (التبويب الثاني)
 # =========================================================
 with main_tab2:
-    st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية للأطباء</h3>", unsafe_allow_html=True)
-    pass_doctor = st.text_input("🔑 أدخل كلمة مرور الإدارة الطبية المعتمدة للعيادة (1234):", type="password", key="doc_pass")
+    st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة متابعة الفحوصات الطبية للأطباء والروشتة</h3>", unsafe_allow_html=True)
+    pass_doctor = st.text_input("🔑 أدخل كلمة المرور الطبية للمركز:", type="password")
     
     if pass_doctor == "1234":
-        st.success("🔓 تم مصادقة الصلاحية الطبية الحساسة.")
+        st.success("🔓 تم مصادقة الصلاحية الطبية للمركز بنجاح.")
         st.session_state.appointments = load_appointments()
         
         if st.session_state.appointments:
@@ -230,74 +230,14 @@ with main_tab2:
             st.dataframe(df_app, use_container_width=True)
             
             st.markdown("---")
-            st.markdown("#### 🩺 تحديث حالة الفحص الطبي وإصدار الروشتة السحابية:")
+            st.markdown("#### 🩺 تحديث حالة الفحص الطبي للمريض الحين:")
             p_ids = [int(a['id']) for a in st.session_state.appointments]
             
-            with st.form("doctor_update_form"):
-                sel_id = st.selectbox("اختر رقم الملف الطبي للمريض:", p_ids)
-                new_status = st.selectbox("الحالة الطبية الحالية:", ["Examined (تم الفحص وصرف العلاج) ✅", "In Progress (داخل غرفة الكشف الحين) ⚙️"])
-                medicines = st.text_input("العلاج والروشتة أو تحديث التشخيص الطبي:")
+            with st.form("doctor_update_form_ckc"):
+                sel_id = st.selectbox("اختر رقم الملف الطبي للمريض المعني:", p_ids)
+                new_status = st.selectbox("الحالة الطبية الحالية بالمركز:", ["Examined (تم الفحص وصرف العلاج) ✅", "In Progress (داخل غرفة الكشف الحين) ⚙️"])
+                medicines = st.text_input("العلاج والروشتة أو تحديث التشخيص الطبي للمريض:")
                 
                 submit_doc = st.form_submit_button("🔄 تحديث وحفظ الملف الطبي للمريض فوراً")
                 if submit_doc:
                     fields = {
-                        "status": new_status,
-                        "notes": medicines if medicines.strip() else "متابعة مستقرة",
-                        "updated_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
-                    }
-                    if update_appointment_in_db(sel_id, fields):
-                        st.success("✅ تم تحديث بيانات المريض بنجاح في قاعدة البيانات السحابية.")
-                        st.session_state.appointments = load_appointments()
-                        st.rerun()
-                    else:
-                        st.error("❌ حدث خطأ أثناء التحديث السحابي.")
-        else:
-            st.info("لا توجد حجوزات مسجلة حالياً.")
-    elif pass_doctor:
-        st.error("❌ كلمة المرور غير صحيحة.")
-
-# =========================================================
-# 3️⃣ عيادات فحص المرضى والحجوزات (التبويب الثالث - محمي بكلمة مرور 1234)
-# =========================================================
-with main_tab1:
-    st.markdown("<h3 style='color: #0284C7;'>📥 حجز وتكويد ملف طبي لمريض جديد</h3>", unsafe_allow_html=True)
-    
-    pass_booking = st.text_input("🔑 أدخل كلمة مرور الحجوزات الطبية (1234):", type="password", key="booking_pass")
-    
-    if pass_booking == "1234":
-        st.success("🔓 تمت مصادقة صلاحية الحجز بنجاح.")
-        with st.form("patient_booking_form", clear_on_submit=True):
-            p1, p2 = st.columns(2)
-            with p1: name = st.text_input("👤 اسم المريض ثلاثي (Patient Name):")
-            with p2: phone = st.text_input("📞 رقم الهاتف المحمول:")
-            
-            doctor = st.selectbox("🩺 الطبيب المعالج المسؤول:", [
-                "د. رفيق فلتس - استشاري أمراض وزرع الكلى",
-                "د. رشاد برسوم - استشاري أمراض الكلى"
-            ])
-            notes = st.text_area("📋 الملاحظات الطبية الأولية أو شكوى المريض:")
-            
-            submit_p = st.form_submit_button("🚀 ترحيل وإصدار تذكرة الفحص الطبية")
-            if submit_p:
-                if name.strip() and phone.strip():
-                    payload = {
-                        "id": int(st.session_state.patient_next_id),
-                        "patient_name": name,
-                        "phone": phone,
-                        "doctor_name": doctor,
-                        "status": "Pending (في الانتظار) ⏳",
-                        "notes": notes if notes.strip() else "فحص دوري لوظائف الكلى",
-                        "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
-                        "updated_at": "لم تُحدث بعد"
-                    }
-                    if insert_appointment(payload):
-                        st.session_state.appointments = load_appointments()
-                        st.success(f"🎉 تم حجز التذكرة بنجاح! رقم الملف الطبي الموحد للمريض هو: #{st.session_state.patient_next_id}")
-                        st.session_state.patient_next_id += 1
-                        st.rerun()
-                else:
-                    st.error("❌ يرجى ملء اسم المريض ورقم الهاتف المحمول لإتمام الحجز السحابي.")
-    elif pass_booking:
-        st.error("❌ كلمة المرور غير صحيحة. يرجى إدخال (1234) لفتح نظام الحجز.")
-    else:
-        st.info("ℹ️ يرجى إدخال كلمة المرور المعتمدة (1234) لفتح نموذج الحجز وتكويد المرضى.")
