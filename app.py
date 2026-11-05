@@ -188,11 +188,12 @@ with main_tab3:
         
         if submit_it:
             if reporter.strip() and device.strip():
+                # تم دمج بيانات الجهاز والمشكلة في عمود 'issue' المتوافق مع الجدول لتفادي أي أخطاء
+                full_issue_text = f"الجهاز: {device} | التفاصيل: {issue_desc if issue_desc.strip() else 'لا توجد تفاصيل'}"
                 ticket_payload = {
                     "id": int(st.session_state.it_next_id),
                     "name": reporter,
-                    "device": device,
-                    "issue": issue_desc,
+                    "issue": full_issue_text,
                     "status": "Pending (قيد الانتظار) ⏳",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                 }
