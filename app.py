@@ -54,7 +54,7 @@ st.markdown("""
         }
         .stButton > button:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+            box-shadow: 0 6px 18 rgba(2, 132, 199, 0.35);
         }
     </style>
 """, unsafe_allow_html=True)
@@ -138,7 +138,7 @@ if 'it_next_id' not in st.session_state:
 # =========================================================
 # 🏥 5. هيدر الواجهة الاحترافية الكبرى وعرض اللوجو الدائري
 # =========================================================
-col_logo, col_banner = st.columns([1, 4])
+col_logo, col_banner = st.columns()
 
 with col_logo:
     # سيقوم النظام بقراءة اللوجو الرسمي الدائري فور رفعه باسم logo.png
@@ -207,7 +207,7 @@ with main_tab1:
 # =========================================================
 with main_tab2:
     st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية للأطباء</h3>", unsafe_allow_html=True)
-    pass_doctor = st.text_input("🔑 أدخل كلمة المرور الطبية المعتمدة للعيادة:", type="password")
+    pass_doctor = st.text_input("🔑 أدخل كلمة مرور الإدارة الطبية المعتمدة للعيادة:", type="password")
     
     if pass_doctor == "1234":
         st.success("🔓 تم مصادقة الصلاحية الطبية الحساسة.")
