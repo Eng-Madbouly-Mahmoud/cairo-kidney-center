@@ -7,18 +7,73 @@ import pandas as pd
 import io
 import os
 
-# 🔑 جلب إعدادات الاتصال الآمنة والديناميكية عبر نظام الحماية (Secrets)
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+# =========================================================
+# ⚙️ 1. إعدادات الصفحة الفاخرة المخصصة للمراكز الطبية الكبرى
+# =========================================================
+st.set_page_config(
+    page_title="Cairo Kidney Center - Integrated Medical ERP Suite", 
+    page_icon="🩺", 
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
 
-# تهيئة عميل Supabase لمرة واحدة في الجلسة
+# 🎨 2. هندسة الواجهة عبر الـ CSS المتقدم (الهوية الطبية الفاخرة)
+st.markdown("""
+    <style>
+        /* تثبيت الخلفية والألوان النظيفة للمستشفيات */
+        :root { color-scheme: light !important; }
+        .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; }
+        
+        /* تصميم الهيدر الطبي الفاخر */
+        .medical-hero-banner {
+            background: linear-gradient(135deg, #0284C7 0%, #1E3A8A 100%);
+            padding: 30px;
+            border-radius: 16px;
+            color: #FFFFFF !important;
+            box-shadow: 0 10px 25px rgba(2, 132, 199, 0.15);
+            margin-bottom: 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        /* تحسين التبويبات والأزرار والخطوط */
+        h1, h2, h3, h4, .stMarkdown p, .stMarkdown span {
+            font-family: "Cairo", sans-serif !important;
+        }
+        
+        /* تجميل الأزرار لتكون تفاعلية ومريحة للمستخدم */
+        .stButton > button {
+            background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%) !important;
+            color: #FFFFFF !important;
+            font-weight: 700 !important;
+            border-radius: 8px !important;
+            border: none !important;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
+            transition: all 0.3s ease;
+        }
+        .stButton > button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
+        }
+    </style>
+""", unsafe_allow_html=True)
+
+# 🔑 3. محرك الاتصال بقاعدة بيانات الهدى (المشروع المشترك)
+SUPABASE_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"].strip()
+
 @st.cache_resource
 def get_supabase_client() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY)
 
 supabase = get_supabase_client()
 
-# 📥 دالة جلب بيانات الحجوزات الطبية من السحاب
+# =========================================================
+# 📥 محركات وقنوات معالجة البيانات السحابية (CRUD Database Engine)
+# =========================================================
+
+# --- قنوات موديول المرضى والعيادات الكلوية ---
 def load_appointments():
     try:
         response = supabase.table("appointments").select("*").order("id", desc=False).execute()
@@ -26,199 +81,156 @@ def load_appointments():
     except Exception:
         return []
 
-# 💾 دالة حفظ حجز طبي جديد في السحاب
 def insert_appointment(new_app):
     try:
-        db_data = {
-            "id": int(new_app["id"]),
-            "patient_name": new_app["patient_name"],
-            "phone": new_app["phone"],
-            "doctor_name": new_app["doctor_name"],
-            "status": "Pending (قيد الانتظار)",
-            "notes": new_app["notes"],
-            "created_at": new_app["created_at"],
-            "updated_at": "لم تُحدث بعد"
-        }
-        supabase.table("appointments").insert(db_data).execute()
+        supabase.table("appointments").insert(new_app).execute()
         return True
     except Exception as e:
-        st.error(f"خطأ في حفظ الحجز السحابي: {e}")
+        st.error(f"خطأ سحابي في ملف المريض: {e}")
         return False
 
-# 🔄 دالة تحديث حالة الحجز (تم الكشف / إلغاء / تأجيل)
-def update_appointment_in_db(app_id, updated_fields):
+def update_appointment_in_db(app_id, fields):
     try:
-        supabase.table("appointments").update(updated_fields).eq("id", app_id).execute()
+        supabase.table("appointments").update(fields).eq("id", app_id).execute()
         return True
-    except Exception as e:
-        st.error(f"خطأ في تحديث البيانات الطبية: {e}")
+    except Exception:
         return False
 
-# تهيئة مخزن البيانات وجلب البيانات من السحاب لضمان المزامنة الثابتة
+# --- قنوات موديول تكنولوجيا المعلومات والشبكات المشتركة (IT Support) ---
+def load_it_tickets():
+    try:
+        response = supabase.table("tickets").select("*").order("id", desc=False).execute()
+        return response.data or []
+    except Exception:
+        return []
+
+def insert_it_ticket(new_ticket):
+    try:
+        supabase.table("tickets").insert(new_ticket).execute()
+        return True
+    except Exception as e:
+        st.error(f"خطأ في إرسال بلاغ الـ IT: {e}")
+        return False
+
+# =========================================================
+# 🎛️ 4. المزامنة المباشرة وتهيئة الذاكرة التلقائية
+# =========================================================
 if 'appointments' not in st.session_state:
     st.session_state.appointments = load_appointments()
+if 'it_tickets' not in st.session_state:
+    st.session_state.it_tickets = load_it_tickets()
 
-# ضبط الترقيم التلقائي للملفات الطبية والحجوزات
-if 'next_id' not in st.session_state:
+# ترقيم الحجوزات الطبية
+if 'patient_next_id' not in st.session_state:
     if st.session_state.appointments:
-        max_id = max([int(a['id']) for a in st.session_state.appointments])
-        st.session_state.next_id = max_id + 1
+        st.session_state.patient_next_id = max([int(a['id']) for a in st.session_state.appointments]) + 1
     else:
-        st.session_state.next_id = 1001
+        st.session_state.patient_next_id = 5001
 
-# ⚙️ إعدادات الصفحة بنمط الهوية الطبية لمركز الكلى
-st.set_page_config(page_title="Cairo Kidney Center - مركز القاهرة لأمراض الكلى", page_icon="🏥", layout="wide")
+# ترقيم بلاغات الـ IT للأعطال التقنية
+if 'it_next_id' not in st.session_state:
+    if st.session_state.it_tickets:
+        st.session_state.it_next_id = max([int(t['id']) for t in st.session_state.it_tickets]) + 1
+    else:
+        st.session_state.it_next_id = 101
 
-# =========================================================
-# 🎨 حقن هوية وتنسيقات CSS الدقيقة (الأبيض * اللبني الطبي)
-# =========================================================
-st.markdown("""
-    <style>
-        /* إجبار الوضع الفاتح وتثبيت الألوان الاحترافية للمراكز الطبية */
-        :root {
-            color-scheme: light !important;
-        }
-        .stApp {
-            background-color: #FFFFFF;
-        }
-        /* تنسيق النصوص لتكون واضحة باللون الكحلي والرمادي الداكن */
-        .stMarkdown p, .stMarkdown b, .stMarkdown span, h1, h2, h3 {
-            color: #1E3A8A !important;
-            font-family: "Cairo", sans-serif;
-        }
-        /* تخصيص الأزرار لتطابق اللون اللبني الهادئ */
-        .stButton > button {
-            background-color: #7DD3FC !important;
-            color: #0F172A !important;
-            font-weight: bold;
-            border-radius: 6px;
-            border: 1px solid #38BDF8;
-        }
-        .stButton > button:hover {
-            background-color: #38BDF8 !important;
-            color: #FFFFFF !important;
-        }
-    </style>
-""", unsafe_allow_html=True)
 
 # =========================================================
-# 🏥 الهيدر الرئيسي وعرض اللوجو المزامر من الـ GitHub
+# 🏥 5. هيدر الواجهة الاحترافية الكبرى وعرض اللوجو الدائري
 # =========================================================
-col_header1, col_header2 = st.columns([1, 4])
+col_logo, col_banner = st.columns([1, 4])
 
-with col_header1:
-    # التحقق من وجود صورة اللوجو بجانب الكود في الجيت هب وعرضها تلقائياً
+with col_logo:
+    # سيقوم النظام بقراءة اللوجو الرسمي الدائري فور رفعه باسم logo.png
     if os.path.exists("logo.png"):
-        st.image("logo.png", width=140)
+        st.image("logo.png", use_container_width=True)
     else:
-        # عرض أيقونة طبية مؤقتة في حال عدم رفع الصورة بعد
-        st.markdown("<h1 style='font-size: 80px; margin: 0;'>🏥</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='font-size: 90px; text-align: center; margin: 0;'>🩺</h1>", unsafe_allow_html=True)
 
-with col_header2:
+with col_banner:
     st.markdown("""
-        <div style='background-color: #E0F2FE; padding: 15px; border-radius: 10px; border-right: 6px solid #0284C7; margin-top: 10px;'>
-            <h1 style='margin: 0; color: #0369A1 !important; font-size: 28px;'>مركز القاهرة لأمراض الكلى - Cairo Kidney Center</h1>
-            <p style='margin: 5px 0 0 0; color: #075985 !important; font-weight: 500;'>المنظومة الطبية الذكية المتقدمة لإدارة الحجوزات وسجلات المرضى</p>
+        <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 22px; border-radius: 12px; border-right: 8px solid #0284C7;'>
+            <h1 style='margin: 0; color: #1E3A8A !important; font-size: 26px; font-weight: bold;'>مركز القاهرة لأمراض الكلى | Cairo Kidney Center</h1>
+            <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px; font-weight: 600;'>المنظومة السحابية الموحدة لإدارة العيادات التخصصية وجلسات الغسيل الكلوي والدعم التقني المتكامل</p>
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown("---")
+st.markdown("<br>", unsafe_allow_html=True)
 
-# تبويبات النظام الطبي الجديد
-tab1, tab2 = st.tabs(["📝 بوابة حجز المواعيد والعيادات", "🖥️ لوحة الإدارة والسجلات الطبية للأطباء"])
+# تبويبات الأنظمة المشتركة في الواجهة الحديثة
+main_tab1, main_tab2, main_tab3 = st.tabs([
+    "📝 عيادات فحص المرضى والحجوزات", 
+    "🩺 عيادة الأطباء والسجلات السحابية", 
+    "⚙️ تكنولوجيا المعلومات والدعم الفني للعيادات (IT Modules)"
+])
 
-# 📝 بوابة حجز المواعيد والعيادات (التبويب الأول)
-with tab1:
-    st.markdown("<h3 style='color: #0369A1 !important;'>📥 تسجيل مريض جديد وتحديد العيادة</h3>", unsafe_allow_html=True)
-    
-    with st.form("appointment_form", clear_on_submit=True):
-        p_name = st.text_input("👤 اسم المريض بالكامل (Patient Name):")
-        p_phone = st.text_input("📞 رقم الهاتف للتواصل (Phone Number):")
-        doc_name = st.selectbox("🩺 الطبيب الاستشاري المعالج (Consultant Doctor):", [
+# =========================================================
+# 1️⃣ عيادات فحص المرضى والحجوزات (التبويب الأول)
+# =========================================================
+with main_tab1:
+    st.markdown("<h3 style='color: #0284C7;'>📥 حجز وتكويد ملف طبي لمريض جديد</h3>", unsafe_allow_html=True)
+    with st.form("patient_booking_form", clear_on_submit=True):
+        p1, p2 = st.columns(2)
+        with p1: name = st.text_input("👤 اسم المريض ثلاثي (Patient Name):")
+        with p2: phone = st.text_input("📞 رقم الهاتف المحمول:")
+        
+        doctor = st.selectbox("🩺 العيادة الطبية والاستشاري المسؤول:", [
             "أ.د. أحمد عبد الرحمن - استشاري أمراض وزرع الكلى",
             "أ.د. محمود الشافعي - استشاري غسيل الكلى والأوعية الدموية",
             "د. سارة عزمي - أخصائي أمراض الكلى ومتابعة وظائف الكلى"
         ])
-        notes = st.text_area("📋 التاريخ المرضي أو ملاحظات الحجز (Clinical Notes):")
+        notes = st.text_area("📋 الملاحظات الطبية الأولية أو شكوى المريض:")
         
-        submit_booking = st.form_submit_button("🚀 تأكيد الحجز وإصدار التذكرة الطبية")
-        
-        if submit_booking:
-            if p_name.strip() and p_phone.strip():
-                current_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
-                
-                app_payload = {
-                    "id": int(st.session_state.next_id),
-                    "patient_name": p_name,
-                    "phone": p_phone,
-                    "doctor_name": doc_name,
-                    "notes": notes if notes.strip() else "لا توجد ملاحظات إضافية",
-                    "created_at": current_time
+        submit_p = st.form_submit_button("🚀 ترحيل وإصدار تذكرة الفحص الطبية")
+        if submit_p:
+            if name.strip() and phone.strip():
+                payload = {
+                    "id": int(st.session_state.patient_next_id),
+                    "patient_name": name,
+                    "phone": phone,
+                    "doctor_name": doctor,
+                    "status": "Pending (في الانتظار) ⏳",
+                    "notes": notes if notes.strip() else "فحص دوري لوظائف الكلى",
+                    "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
+                    "updated_at": "لم تُحدث بعد"
                 }
-                
-                if insert_appointment(app_payload):
+                if insert_appointment(payload):
                     st.session_state.appointments = load_appointments()
-                    st.success(f"🎉 تم تسجيل الحجز بنجاح! رقم الملف الطبي للمريض هو: #{st.session_state.next_id}")
-                    st.session_state.next_id += 1
+                    st.success(f"🎉 تم حجز التذكرة بنجاح! رقم الملف الطبي الموحد للمريض هو: #{st.session_state.patient_next_id}")
+                    st.session_state.patient_next_id += 1
                     st.rerun()
             else:
-                st.error("❌ خطأ: يرجى كتابة اسم المريض ورقم الهاتف أولاً لإتمام الحجز السحابي!")
+                st.error("❌ حماية: يرجى ملء اسم المريض ورقم الهاتف المحمول لإتمام الحجز السحابي.")
 
-# 🖥️ لوحة الإدارة والسجلات الطبية للأطباء (التبويب الثاني)
-with tab2:
-    st.markdown("<h3 style='color: #0369A1 !important;'>🖥️ شاشة الأطباء ومتابعة حالات العيادات اليومية</h3>", unsafe_allow_html=True)
-    admin_password = st.text_input("🔑 أدخل كلمة المرور الطبية للوصول للبيانات:", type="password")
+# =========================================================
+# 2️⃣ عيادة الأطباء والسجلات السحابية (التبويب الثاني)
+# =========================================================
+with main_tab2:
+    st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية للأطباء</h3>", unsafe_allow_html=True)
+    pass_doctor = st.text_input("🔑 أدخل كلمة المرور الطبية المعتمدة للعيادة:", type="password")
     
-    if admin_password == "1234":
-        st.success("🔓 تم التصريح بالدخول للملفات الطبية الحساسة للمركز.")
+    if pass_doctor == "1234":
+        st.success("🔓 تم مصادقة الصلاحية الطبية الحساسة.")
         st.session_state.appointments = load_appointments()
         
-        # عرض وتحميل التقارير الطبية بصيغة Excel منظم
         if st.session_state.appointments:
-            st.markdown("### 📊 بيان وجدول الحجوزات الشامل للمركز")
             df_app = pd.DataFrame(st.session_state.appointments)
-            df_display = df_app[["id", "patient_name", "phone", "doctor_name", "status", "notes", "created_at", "updated_at"]].copy()
-            df_display.columns = ["رقم الملف الطبي", "اسم المريض", "رقم الهاتف", "الطبيب المعالج", "الحالة الحالية", "التشخيص/الملاحظات", "تاريخ الحجز", "آخر تحديث للفحص"]
+            st.dataframe(df_app, use_container_width=True)
             
-            st.dataframe(df_display, use_container_width=True)
-            
-            # محرك استخراج Excel
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
-                df_display.to_excel(writer, index=False, sheet_name='سجل العيادات اليومي')
-            
-            st.download_button(
-                label="📥 تحميل سجل كشف المرضى اليومي كملف Excel منظم",
-                data=buffer.getvalue(),
-                file_name=f"Cairo_Kidney_Center_Report_{datetime.now().strftime('%Y-%m-%d')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
             st.markdown("---")
+            st.markdown("#### 🩺 تحديث حالة الفحص الطبي وإصدار الروشتة السحابية:")
+            p_ids = [int(a['id']) for a in st.session_state.appointments]
             
-            # تحديث حالات المرضى (تم الكشف / قيد الانتظار) من قبل الطبيب
-            st.markdown("### 🩺 تحديث الملف الطبي للمريض ومتابعة الفحص:")
-            app_ids = [int(a['id']) for a in st.session_state.appointments]
-            
-            with st.form("update_appointment_form"):
-                selected_id = st.selectbox("اختر رقم الملف الطبي للمريض:", app_ids)
-                new_status = st.selectbox("تحديث حالة الحالة الصحية إلى:", [
-                    "Examined (تم توقيع الكشف الطبي) ✅",
-                    "In Progress (داخل غرفة الفحص الآن) ⚙️",
-                    "Cancelled (تم إلغاء الحجز) ❌"
-                ])
-                doctor_updates = st.text_input("العلاج الموصوف أو تحديث التشخيص:")
-                submit_update = st.form_submit_button("🔄 ترحيل وتحديث السجل السحابي للمريض")
+            with st.form("doctor_update_form"):
+                sel_id = st.selectbox("اختر رقم الملف الطبي للمريض المكتشف:", p_ids)
+                new_status = st.selectbox("الحالة الطبية الحالية:", ["Examined (تم الفحص وصرف العلاج) ✅", "In Progress (داخل غرفة الكشف الحين) ⚙️"])
+                medicines = st.text_input("العلاج والروشتة أو تحديث التشخيص الطبي:")
                 
-                if submit_update:
-                    update_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+                submit_doc = st.form_submit_button("🔄 تحديث وحفظ الملف الطبي للمريض فوراً")
+                if submit_doc:
                     fields = {
                         "status": new_status,
-                        "notes": doctor_updates if doctor_updates.strip() else "لم تتغير الملاحظات",
-                        "updated_at": update_time
+                        "notes": medicines if medicines.strip() else "متابعة مستقرة",
+                        "updated_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                     }
-                    if update_appointment_in_db(selected_id, fields):
-                        st.session_state.appointments = load_appointments()
-                        st.success(f"🎉 تم تحديث السجل الطبي للملف #{selected_id} بنجاح سحابياً!")
-                        st.rerun()
-        else:
-            st.info("ℹ️ لا توجد حجوزات أو مرضى مسجلين في قائمة الانتظار اليوم.")
+                    if update_appointment_in_db(sel_id, fields):
