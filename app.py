@@ -11,7 +11,7 @@ import os
 # ⚙️ 1. إعدادات الصفحة الفاخرة المخصصة للمراكز الطبية الكبرى
 # =========================================================
 st.set_page_config(
-    page_title="Cairo Kidney Center - Integrated Medical ERP Suite", 
+    page_title="مركز دكتور رشاد برسوم - تحت الإنشاء", 
     page_icon="🩺", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -141,7 +141,6 @@ if 'it_next_id' not in st.session_state:
 col_logo, col_banner = st.columns([1, 4])
 
 with col_logo:
-    # سيقوم النظام بقراءة اللوجو الرسمي الدائري فور رفعه باسم logo.png
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
     else:
@@ -150,7 +149,7 @@ with col_logo:
 with col_banner:
     st.markdown("""
         <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 22px; border-radius: 12px; border-right: 8px solid #0284C7;'>
-            <h1 style='margin: 0; color: #1E3A8A !important; font-size: 26px; font-weight: bold;'>مركز القاهرة لأمراض الكلى | Cairo Kidney Center</h1>
+            <h1 style='margin: 0; color: #1E3A8A !important; font-size: 26px; font-weight: bold;'>مركز دكتور رشاد برسوم - (تحت الإنشاء)</h1>
             <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px; font-weight: 600;'>المنظومة السحابية الموحدة لإدارة العيادات التخصصية وجلسات الغسيل الكلوي والدعم التقني المتكامل</p>
         </div>
     """, unsafe_allow_html=True)
@@ -175,9 +174,8 @@ with main_tab1:
         with p2: phone = st.text_input("📞 رقم الهاتف المحمول:")
         
         doctor = st.selectbox("🩺 العيادة الطبية والاستشاري المسؤول:", [
-            "أ.د. أحمد عبد الرحمن - استشاري أمراض وزرع الكلى",
-            "أ.د. محمود الشافعي - استشاري غسيل الكلى والأوعية الدموية",
-            "د. سارة عزمي - أخصائي أمراض الكلى ومتابعة وظائف الكلى"
+            "أ.د. رفيق - استشاري أمراض وزرع الكلى",
+            "د. رفيق - أخصائي أمراض الكلى ومتابعة وظائف الكلى"
         ])
         notes = st.text_area("📋 الملاحظات الطبية الأولية أو شكوى المريض:")
         
@@ -207,7 +205,7 @@ with main_tab1:
 # =========================================================
 with main_tab2:
     st.markdown("<h3 style='color: #1E3A8A;'>🖥️ شاشة مراقبة وتحديث الفحوصات الطبية للأطباء</h3>", unsafe_allow_html=True)
-    pass_doctor = st.text_input("🔑 أدخل كلمة مرور الإدارة الطبية المعتمدة للعيادة:", type="password")
+    pass_doctor = st.text_input("🔑 أدخل كلمة مرور الإدارة الطبية المعتمدة للعيادة:", type="password", key="doc_pass")
     
     if pass_doctor == "1234":
         st.success("🔓 تم مصادقة الصلاحية الطبية الحساسة.")
@@ -230,47 +228,55 @@ with main_tab2:
                 if submit_doc:
                     fields = {
                         "status": new_status,
-                        "notes": medicines if medicines.strip() else "Stable Follow-up",
+                        "notes": medicines if medicines.strip() else "متابعة مستقرة",
                         "updated_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                     }
                     if update_appointment_in_db(sel_id, fields):
-                        st.success("✨ تم تحديث الملف الطبي للمريض وترحيل البيانات لقاعدة البيانات بنجاح!")
+                        st.success("✅ تم تحديث بيانات المريض بنجاح في قاعدة البيانات السحابية.")
                         st.session_state.appointments = load_appointments()
                         st.rerun()
                     else:
-                        st.error("❌ حدث خطأ أثناء الاتصال لتحديث الملف الطبي.")
+                        st.error("❌ حدث خطأ أثناء التحديث السحابي.")
         else:
-            st.info("ℹ️ لا توجد حجوزات مسجلة حالياً.")
+            st.info("لا توجد حجوزات مسجلة حالياً.")
     elif pass_doctor:
         st.error("❌ كلمة المرور غير صحيحة.")
 
 # =========================================================
-# 3️⃣ موديول تكنولوجيا المعلومات والدعم الفني (التبويب الثالث)
+# 3️⃣ تكنولوجيا المعلومات والدعم الفني للعيادات (التبويب الثالث)
 # =========================================================
 with main_tab3:
-    st.markdown("<h3 style='color: #0284C7;'>⚙️ نظام إدارة بلاغات الأعطال وشبكات الـ IT</h3>", unsafe_allow_html=True)
+    st.markdown("<h3 style='color: #0284C7;'>⚙️ تسجيل بلاغات الدعم التقني وأعطال الأجهزة الطبية</h3>", unsafe_allow_html=True)
     with st.form("it_ticket_form", clear_on_submit=True):
-        col_t1, col_t2 = st.columns(2)
-        with col_t1: reporter = st.text_input("👤 اسم الموظف أو القسم المبلغ:")
-        with col_t2: issue_type = st.selectbox("🛠️ نوع العطل التقني:", ["أعطال طابعة Kyocera 🖨️", "مشاكل شبكة الإنترنت والراوتر 🌐", "مشاكل قاعدة البيانات وسيرفر SQL 🗄️", "أعطال الأجهزة والأجهزة الطبية 💻"])
+        t1, t2 = st.columns(2)
+        with t1: reporter = st.text_input("👤 اسم المُبلغ أو القسم الطبي:")
+        with t2: device = st.text_input("💻 اسم الجهاز أو العطل التقني:")
         
-        issue_desc = st.text_area("📝 وصف تفصيلي للمشكلة التقنية:")
-        submit_it = st.form_submit_button("🚀 إرسال البلاغ لقسم الدعم الفني")
+        issue_desc = st.text_area("📋 تفاصيل المشكلة أو العطل التقني:")
+        submit_it = st.form_submit_button("🚀 إرسال البلاغ لفريق الدعم الفني")
         
         if submit_it:
-            if reporter.strip() and issue_desc.strip():
+            if reporter.strip() and device.strip():
                 ticket_payload = {
                     "id": int(st.session_state.it_next_id),
                     "reporter": reporter,
-                    "issue_type": issue_type,
+                    "device": device,
                     "description": issue_desc,
-                    "status": "Open (قيد المراجعة) ⏳",
+                    "status": "Open (مفتوح) ⏳",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                 }
                 if insert_it_ticket(ticket_payload):
                     st.session_state.it_tickets = load_it_tickets()
-                    st.success(f"🛠️ تم تسجيل بلاغ الدعم الفني بنجاح برقم: #{st.session_state.it_next_id}")
+                    st.success(f"🛠️ تم تسجيل بلاغ الدعم الفني برقم: #{st.session_state.it_next_id}")
                     st.session_state.it_next_id += 1
                     st.rerun()
             else:
-                st.error("❌ يرجى كتابة اسم المبلغ ووصف المشكلة بوضوح.")
+                st.error("❌ يرجى ملء اسم المُبلغ واسم الجهاز.")
+                
+    st.markdown("---")
+    st.markdown("#### 📋 قائمة بلاغات الدعم الفني الحالية:")
+    st.session_state.it_tickets = load_it_tickets()
+    if st.session_state.it_tickets:
+        st.dataframe(pd.DataFrame(st.session_state.it_tickets), use_container_width=True)
+    else:
+        st.info("لا توجد بلاغات تقنية مسجلة حالياً.")
