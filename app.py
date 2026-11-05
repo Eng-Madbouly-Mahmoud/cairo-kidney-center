@@ -4,7 +4,6 @@ warnings.filterwarnings("ignore")
 from datetime import datetime
 from supabase import create_client, Client
 import pandas as pd
-import io
 import os
 
 # =========================================================
