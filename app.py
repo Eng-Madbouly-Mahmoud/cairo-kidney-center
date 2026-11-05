@@ -190,7 +190,7 @@ with main_tab1:
                     "phone": phone,
                     "doctor_name": doctor,
                     "status": "Pending (في الانتظار) ⏳",
-                    "notes": notes if notes.strip() else "Routine Kidney Checkup",
+                    "notes": notes if notes.strip() else "فحص دوري لوظائف الكلى",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p"),
                     "updated_at": "لم تُحدث بعد"
                 }
@@ -234,3 +234,43 @@ with main_tab2:
                         "updated_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                     }
                     if update_appointment_in_db(sel_id, fields):
+                        st.success("✨ تم تحديث الملف الطبي للمريض وترحيل البيانات لقاعدة البيانات بنجاح!")
+                        st.session_state.appointments = load_appointments()
+                        st.rerun()
+                    else:
+                        st.error("❌ حدث خطأ أثناء الاتصال لتحديث الملف الطبي.")
+        else:
+            st.info("ℹ️ لا توجد حجوزات مسجلة حالياً.")
+    elif pass_doctor:
+        st.error("❌ كلمة المرور غير صحيحة.")
+
+# =========================================================
+# 3️⃣ موديول تكنولوجيا المعلومات والدعم الفني (التبويب الثالث)
+# =========================================================
+with main_tab3:
+    st.markdown("<h3 style='color: #0284C7;'>⚙️ نظام إدارة بلاغات الأعطال وشبكات الـ IT</h3>", unsafe_allow_html=True)
+    with st.form("it_ticket_form", clear_on_submit=True):
+        col_t1, col_t2 = st.columns(2)
+        with col_t1: reporter = st.text_input("👤 اسم الموظف أو القسم المبلغ:")
+        with col_t2: issue_type = st.selectbox("🛠️ نوع العطل التقني:", ["أعطال طابعة Kyocera 🖨️", "مشاكل شبكة الإنترنت والراوتر 🌐", "مشاكل قاعدة البيانات وسيرفر SQL 🗄️", "أعطال الأجهزة والأجهزة الطبية 💻"])
+        
+        issue_desc = st.text_area("📝 وصف تفصيلي للمشكلة التقنية:")
+        submit_it = st.form_submit_button("🚀 إرسال البلاغ لقسم الدعم الفني")
+        
+        if submit_it:
+            if reporter.strip() and issue_desc.strip():
+                ticket_payload = {
+                    "id": int(st.session_state.it_next_id),
+                    "reporter": reporter,
+                    "issue_type": issue_type,
+                    "description": issue_desc,
+                    "status": "Open (قيد المراجعة) ⏳",
+                    "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
+                }
+                if insert_it_ticket(ticket_payload):
+                    st.session_state.it_tickets = load_it_tickets()
+                    st.success(f"🛠️ تم تسجيل بلاغ الدعم الفني بنجاح برقم: #{st.session_state.it_next_id}")
+                    st.session_state.it_next_id += 1
+                    st.rerun()
+            else:
+                st.error("❌ يرجى كتابة اسم المبلغ ووصف المشكلة بوضوح.")
