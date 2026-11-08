@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 # =========================================================
-# ⚙️ 1. إعدادات الصفحة
+# ⚙️ 1. إعدادات الصفحة والتصميم الفاخر
 # =========================================================
 st.set_page_config(
     page_title="مستشفى القاهرة للكلى - مركز دكتور رشاد برسوم", 
@@ -16,7 +16,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎨 2. تنسيقات CSS احترافية وتصميم تذاكر IT عصرية
 st.markdown("""
     <style>
         :root { color-scheme: light !important; }
@@ -61,7 +60,17 @@ st.markdown("""
             width: 100%;
         }
 
-        /* تصميم بطاقات التذاكر الاحترافية */
+        /* بطاقات الإحصائيات (KPIs) */
+        .metric-card {
+            background: #FFFFFF;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+            text-align: center;
+            border-top: 4px solid #0284C7;
+        }
+
+        /* تصميم كروت التذاكر الاحترافية */
         .it-ticket-card {
             background: #FFFFFF;
             border-radius: 12px;
@@ -71,6 +80,10 @@ st.markdown("""
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: right;
         }
+        .it-ticket-card.closed {
+            border-right-color: #10B981;
+            background-color: #F8FAFC;
+        }
         .ticket-badge {
             background: #E0F2FE;
             color: #0369A1;
@@ -79,11 +92,19 @@ st.markdown("""
             font-size: 13px;
             font-weight: bold;
         }
+        .engineer-badge {
+            background: #DCFCE7;
+            color: #166534;
+            padding: 4px 10px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: bold;
+        }
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# 🔑 3. الربط بقاعدة بيانات Supabase
+# 🔑 2. الربط بقاعدة بيانات Supabase
 # =========================================================
 try:
     SUPABASE_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
@@ -106,7 +127,6 @@ def load_appointments():
         res = supabase.table("appointments").select("*").order("id", desc=True).execute()
         return res.data or []
     except Exception as e:
-        st.error(f"خطأ في جلب المواعيد: {e}")
         return []
 
 def insert_appointment(data):
@@ -146,14 +166,8 @@ def close_it_ticket_in_db(ticket_id, eng_name):
         st.error(f"خطأ أثناء إغلاق التذكرة: {e}")
         return False
 
-# تهيئة الذاكرة
-if 'it_tickets' not in st.session_state:
-    st.session_state.it_tickets = load_it_tickets()
-if 'appointments' not in st.session_state:
-    st.session_state.appointments = load_appointments()
-
 # =========================================================
-# 🏥 الهيدر الرئيسي
+# 🏥 الهيدر الرئيسي للمستشفى
 # =========================================================
 col_logo, col_banner = st.columns([1, 5])
 with col_logo:
@@ -166,39 +180,70 @@ with col_banner:
     st.markdown("""
         <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 18px; border-radius: 12px; border-right: 8px solid #0369A1; text-align: right;'>
             <h2 style='margin: 0; color: #0C4A6E !important;'>مستشفى القاهرة للكلى - مركز دكتور رشاد برسوم</h2>
-            <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px;'>إدارة العيادات التخصصية، جلسات الغسيل الكلوي، والدعم الفني الذكي</p>
+            <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px;'>نظام إدارة الدعم الفني وتكنولوجيا المعلومات (IT Helpdesk)</p>
         </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# التبويبات الثلاثة
+# التبويبات الرئيسية
 tab_it, tab_records, tab_booking = st.tabs([
-    "⚙️ تكنولوجيا المعلومات والدعم الفني (IT Support)",
+    "⚙️ قسم تكنولوجيا المعلومات والدعم الفني",
     "🩺 عيادة الأطباء والسجلات السحابية",
     "📝 حجز مواعيد الفحص والعيادات"
 ])
 
 # =========================================================
-# 1️⃣ تبويب الدعم الفني
+# 1️⃣ تبويب الدعم الفني (IT Helpdesk الاحترافي)
 # =========================================================
 with tab_it:
-    st.markdown("### 📢 تسجيل بلاغ عطل فني أو صيانة جهاز")
+    tickets_list = load_it_tickets()
+    open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).lower() == "open"]
+    closed_tickets = [t for t in tickets_list if str(t.get("status", "")).lower() == "closed"]
+
+    # إحصائيات سريعة (KPIs)
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        st.markdown(f"""<div class="metric-card"><h4>📥 البلاغات المفتوحة</h4><h2 style="color: #0284C7; margin:0;">{len(open_tickets)}</h2></div>""", unsafe_allow_html=True)
+    with k2:
+        st.markdown(f"""<div class="metric-card"><h4>✅ البلاغات المنجزة</h4><h2 style="color: #10B981; margin:0;">{len(closed_tickets)}</h2></div>""", unsafe_allow_html=True)
+    with k3:
+        st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات</h4><h2 style="color: #475569; margin:0;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.markdown("### 📢 تسجيل بلاغ عطل أو مشكلة تقنية جديدة")
     
     with st.form("it_ticket_form", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
         with c1:
-            reporter = st.text_input("👤 اسم المُبلّغ:")
+            reporter = st.text_input("👤 اسم المُبلّغ / الطبيب / الموظف:")
         with c2:
-            dept = st.text_input("🏥 القسم أو الوحدة:", placeholder="مثل: وحدة الغسيل الكلوي، الاستقبال...")
+            dept = st.selectbox("🏥 القسم أو الوحدة:", [
+                "وحدة الغسيل الكلوي (الدور الأول)", 
+                "وحدة الغسيل الكلوي (الدور الثاني)", 
+                "عيادة الكلى التخصصية", 
+                "الاستقبال والطوارئ", 
+                "المعمل وتحاليل الدم", 
+                "قسم الأشعة", 
+                "الصيدلية", 
+                "الإدارة والحسابات"
+            ])
         with c3:
-            device = st.text_input("💻 اسم الجهاز أو الأداة:")
+            device = st.selectbox("💻 تصنيف الجهاز أو النظام:", [
+                "جهاز كمبيوتر مكتبي (PC)", 
+                "محطة عمل الغسيل الكلوي", 
+                "طابعة مستندات / باركود", 
+                "شبكة الإنترنت / الواي فاي", 
+                "شاشة العرض الطبية", 
+                "برنامج السيستم / السجلات الطبية", 
+                "أجهزة أخرى"
+            ])
             
         issue = st.text_area("📋 تفاصيل المشكلة أو العطل بدقة:")
-        submit_btn = st.form_submit_button("🚀 إرسال البلاغ لقسم الدعم الفني")
+        submit_btn = st.form_submit_button("🚀 إرسال البلاغ الفوري لقسم الـ IT")
         
         if submit_btn:
-            if reporter and device and issue:
+            if reporter and issue:
                 ticket_data = {
                     "reporter": reporter,
                     "dept": dept,
@@ -207,54 +252,52 @@ with tab_it:
                     "status": "Open"
                 }
                 if insert_it_ticket(ticket_data):
-                    st.success("✅ تم حفظ البلاغ بنجاح في قاعدة البيانات!")
-                    st.session_state.it_tickets = load_it_tickets()
+                    st.success("✅ تم إرسال البلاغ بنجاح وجاري العمل عليه من قبل فريق الدعم الفني!")
                     st.rerun()
             else:
-                st.warning("⚠️ يرجى ملء اسم المُبلّغ، اسم الجهاز، وتفاصيل المشكلة على الأقل.")
+                st.warning("⚠️ يرجى إدخال اسم المُبلّغ وتفاصيل المشكلة على الأقل.")
 
     st.markdown("---")
-    st.markdown("### 🛠️ لوحة متابعة وإغلاق التذاكر الفنية")
-    
-    tickets_list = load_it_tickets()
-    open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).lower() == "open"]
-    closed_tickets = [t for t in tickets_list if str(t.get("status", "")).lower() == "closed"]
+    st.markdown("### 🛠️ لوحة متابعة وإنهاء البلاغات التقنية")
 
-    sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة ({len(open_tickets)})", f"✅ البلاغات المنجزة ({len(closed_tickets)})"])
+    sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة قيد الإجراء ({len(open_tickets)})", f"✅ سجل البلاغات المنجزة ({len(closed_tickets)})"])
 
     with sub_tab1:
         if not open_tickets:
-            st.success("🎉 لا توجد أي أعطال مفتوحة حالياً، كل الأجهزة تعمل بكفاءة!")
+            st.success("🎉 ممتاز! لا توجد أي أعطال مفتوحة حالياً، جميع أجهزة وأقسام المستشفى تعمل بكفاءة تامة.")
         else:
-            eng_name = st.text_input("👷 اسم مهندس الدعم الفني المعالج:", value="مهندس الـ IT", key="eng_name_input")
+            eng_name = st.text_input("👷 اسم مهندس الدعم الفني القائم بالحل:", value="م/ أحمد محمود", key="eng_name_input")
             st.markdown("<br>", unsafe_allow_html=True)
             
             for t in open_tickets:
-                ticket_dept = t.get('dept') or t.get('department') or 'عام'
-                ticket_issue = t.get('issue') or t.get('issue_desc') or 'لا توجد تفاصيل'
+                ticket_id = t.get('id')
+                ticket_dept = t.get('dept') or 'عام'
+                ticket_device = t.get('device') or 'جهاز'
+                ticket_issue = t.get('issue') or 'لا توجد تفاصيل'
+                ticket_reporter = t.get('reporter')
+                ticket_time = str(t.get('created_at', ''))[:16]
                 
                 st.markdown(f"""
                     <div class="it-ticket-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{t.get('id')} - {t.get('device')}</h4>
+                            <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{ticket_id} - {ticket_device}</h4>
                             <span class="ticket-badge">القسم: {ticket_dept}</span>
                         </div>
-                        <p style="margin: 12px 0 6px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {t.get('reporter')}</p>
+                        <p style="margin: 12px 0 6px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {ticket_reporter}</p>
                         <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
-                        <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {str(t.get('created_at', ''))[:16]}</p>
+                        <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {ticket_time}</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 c_pwd, c_btn = st.columns([2, 1])
                 with c_pwd:
-                    pwd = st.text_input("رمز الأمان لإغلاق التذكرة:", type="password", key=f"pwd_{t['id']}")
+                    pwd = st.text_input("رمز الأمان لإغلاق التذكرة:", type="password", key=f"pwd_{ticket_id}")
                 with c_btn:
                     st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                    if st.button("✔️ إغلاق التذكرة", key=f"close_btn_{t['id']}"):
+                    if st.button("✔️ إغلاق التذكرة وحفظ اسم المهندس", key=f"close_btn_{ticket_id}"):
                         if pwd == "2026":
-                            if close_it_ticket_in_db(t["id"], eng_name):
-                                st.success(f"تم إغلاق التذكرة #{t['id']} بنجاح!")
-                                st.session_state.it_tickets = load_it_tickets()
+                            if close_it_ticket_in_db(ticket_id, eng_name):
+                                st.success(f"تم إغلاق التذكرة #{ticket_id} بواسطة المهندس ({eng_name}) بنجاح!")
                                 st.rerun()
                         else:
                             st.error("❌ رمز الأمان غير صحيح.")
@@ -269,25 +312,42 @@ with tab_it:
                 formatted_closed.append({
                     "رقم البلاغ": t.get("id"),
                     "المُبلّغ": t.get("reporter"),
-                    "الجهاز": t.get("device"),
-                    "القسم": t.get("dept") or t.get("department"),
-                    "تفاصيل العطل": t.get("issue") or t.get("issue_desc"),
-                    "المهندس المسؤول": t.get("closed_by"),
-                    "تاريخ الإغلاق": str(t.get("closed_at", ""))[:16]
+                    "القسم": t.get("dept"),
+                    "الجهاز / النظام": t.get("device"),
+                    "تفاصيل العطل": t.get("issue"),
+                    "المهندس المعالج": t.get("closed_by") or "غير محدد",
+                    "وقت الإغلاق": str(t.get("closed_at", ""))[:16]
                 })
             df_closed = pd.DataFrame(formatted_closed)
             st.dataframe(df_closed, use_container_width=True)
+
+            # زر تحميل وتنزيل التذاكر والتقارير بصيغة CSV أو Excel
+            csv_data = df_closed.to_csv(index=False).encode('utf-8-sig')
+            st.download_button(
+                label="📥 تحميل تقرير الصيانة والبلاغات المنجزة (CSV)",
+                data=csv_data,
+                file_name=f"IT_Maintenance_Report_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                mime="text/csv"
+            )
 
 # =========================================================
 # 2️⃣ تبويب سجلات المرضى والعيادات
 # =========================================================
 with tab_records:
-    st.markdown("### 📋 سجلات المرضى والمواعيد المسجلة")
+    st.markdown("### 📋 سجلات المرضى والمواعيد المسجلة بالسحابة")
     apps = load_appointments()
     if apps:
         df_apps = pd.DataFrame(apps)[["id", "patient_name", "phone", "clinic_type", "notes", "created_at"]]
         df_apps.columns = ["رقم الملف", "اسم المريض", "رقم الهاتف", "العيادة / الخدمة", "ملاحظات طبية", "تاريخ التسجيل"]
         st.dataframe(df_apps, use_container_width=True)
+        
+        csv_apps = df_apps.to_csv(index=False).encode('utf-8-sig')
+        st.download_button(
+            label="📥 تحميل سجلات المرضى والمواعيد (CSV)",
+            data=csv_apps,
+            file_name=f"Patients_Appointments_{datetime.now().strftime('%Y-%m-%d')}.csv",
+            mime="text/csv"
+        )
     else:
         st.info("لا توجد مواعيد مسجلة حتى الآن.")
 
@@ -317,7 +377,6 @@ with tab_booking:
                 }
                 if insert_appointment(app_data):
                     st.success("✅ تم حفظ ملف الحجز بنجاح!")
-                    st.session_state.appointments = load_appointments()
                     st.rerun()
             else:
                 st.warning("⚠️ يرجى إدخال اسم المريض ورقم الهاتف.")
