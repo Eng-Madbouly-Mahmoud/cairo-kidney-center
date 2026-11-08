@@ -16,13 +16,12 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# 🎨 2. هندسة الواجهة عبر الـ CSS المتقدم (تحسين الألوان للموبايل والاحتفاظ باللبني والبني)
+# 🎨 2. هندسة الواجهة عبر الـ CSS المتقدم
 st.markdown("""
     <style>
         :root { color-scheme: light !important; }
         .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; }
         
-        /* تكبير وتوسيع التابّات (Tabs) مع تباين عالي للموبايل */
         .stTabs [data-baseweb="tab-list"] {
             gap: 15px;
             background-color: #E2E8F0;
@@ -39,11 +38,10 @@ st.markdown("""
             padding-right: 20px;
             font-size: 17px !important;
             font-weight: 800 !important;
-            color: #5C4033 !important; /* بني رئيسي واضح جداً */
+            color: #5C4033 !important;
             box-shadow: 0 4px 10px rgba(0,0,0,0.06);
             transition: all 0.3s ease;
         }
-        /* التاب النشط */
         .stTabs [aria-selected="true"] {
             background: linear-gradient(135deg, #0EA5E9 0%, #3E2723 100%) !important;
             color: #FFFFFF !important;
@@ -51,20 +49,18 @@ st.markdown("""
             transform: scale(1.01);
         }
         
-        /* تحسين خطوط العناوين والنصوص الداخلية لتكون غامقة ومقروءة على الموبايل */
         h1, h2, h3, h4, h5, h6 {
             font-family: "Cairo", sans-serif !important;
-            color: #3E2723 !important; /* بني داكن جداً لأعلى تباين */
+            color: #3E2723 !important;
             font-weight: 700 !important;
         }
         
         .stMarkdown p, .stMarkdown span, label {
             font-family: "Cairo", sans-serif !important;
-            color: #2D1A12 !important; /* نصوص غامقة ومريحة للعين */
+            color: #2D1A12 !important;
             font-weight: 600 !important;
         }
         
-        /* تجميل الأزرار باللون اللبني المريح والواضح */
         .stButton > button {
             background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%) !important;
             color: #FFFFFF !important;
@@ -77,34 +73,22 @@ st.markdown("""
             width: 100%;
         }
         
-        /* كروت عرض التذاكر المفتوحة بخلفية لبني خفيفة وحدود بني */
         .ticket-card-open {
-            background-color: #E0F2FE; /* لبني فاتح مريح */
-            border-right: 6px solid #5C4033; /* حدود بني رئيسي */
+            background-color: #E0F2FE;
+            border-right: 6px solid #5C4033;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
         }
 
-        /* كروت عرض التذاكر المغلقة بخلفية رمادية خفيفة وحدود خضراء للإغلاق */
         .ticket-card-closed {
             background-color: #F1F5F9; 
-            border-right: 6px solid #10B981; /* حدود خضراء */
+            border-right: 6px solid #10B981;
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-        
-        /* تصميم لوحة التحكم الافتراضية للمهندسين */
-        .dashboard-box {
-            background: #FFFFFF;
-            border: 1px solid #E2E8F0;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-            margin-bottom: 25px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -147,6 +131,7 @@ def load_it_tickets():
 
 def insert_it_ticket(new_ticket):
     try:
+        # قمنا بإرسال الحقول المتوفرة والمضمونة فقط في الـ Schema
         supabase.table("tickets").insert(new_ticket).execute()
         return True
     except Exception as e:
@@ -156,7 +141,7 @@ def insert_it_ticket(new_ticket):
 def close_it_ticket_in_db(ticket_id, engineer_name):
     try:
         fields = {
-            "status": f"Closed",
+            "status": "Closed",
             "closed_by": engineer_name,
             "closed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
         }
@@ -167,7 +152,7 @@ def close_it_ticket_in_db(ticket_id, engineer_name):
         return False
 
 # =========================================================
-# 🎛️ 4. تهيئة الذاكرة التلقائية وترقيم الملفات والبلاغات
+# 🎛️ 4. تهيئة الذاكرة التلقائية 
 # =========================================================
 if 'appointments' not in st.session_state:
     st.session_state.appointments = load_appointments()
@@ -175,8 +160,11 @@ if 'appointments' not in st.session_state:
 if 'it_tickets' not in st.session_state:
     st.session_state.it_tickets = load_it_tickets()
 
+if 'active_close_id' not in st.session_state:
+    st.session_state.active_close_id = None
+
 # =========================================================
-# 🏥 5. هيدر الواجهة (عرض اللوجو واسم مركز دكتور رشاد برسوم)
+# 🏥 5. هيدر الواجهة
 # =========================================================
 col_logo, col_banner = st.columns([1, 4])
 
@@ -196,7 +184,6 @@ with col_banner:
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# التابّات الرئيسية
 main_tab3, main_tab2, main_tab1 = st.tabs([
     "⚙️ تكنولوجيا المعلومات والدعم الفني (IT Support)", 
     "🩺 عيادة الأطباء والسجلات السحابية", 
@@ -204,18 +191,17 @@ main_tab3, main_tab2, main_tab1 = st.tabs([
 ])
 
 # =========================================================
-# 1️⃣ تكنولوجيا المعلومات والدعم الفني (مركز التحكم والتذاكر)
+# 1️⃣ تكنولوجيا المعلومات والدعم الفني 
 # =========================================================
 with main_tab3:
     st.markdown("<h3 style='color: #3E2723;'>⚙️ تسجيل وتتبع بلاغات وأعطال الأجهزة الطبية</h3>", unsafe_allow_html=True)
     
-    # فورم إدخال البلاغات
     with st.form("it_ticket_form", clear_on_submit=True):
         t1, t2, t3 = st.columns(3)
         with t1: 
             reporter = st.text_input("👤 اسم المُبلغ:")
         with t2: 
-            dept_input = st.text_input("🏥 القسم الطبي (مطلوب لـ Supabase):", placeholder="مثال: الغسيل الكلوي، العيادات...")
+            dept_input = st.text_input("🏥 القسم الطبي:", placeholder="مثال: الغسيل الكلوي، العيادات...")
         with t3: 
             device = st.text_input("💻 اسم الجهاز أو العطل التقني:")
         
@@ -224,12 +210,14 @@ with main_tab3:
         submit_ticket = st.form_submit_button("📢 إرسال بلاغ الدعم الفني وتوليد تذكرة سلسلة")
         
         if submit_ticket:
-            if reporter and dept_input and device and issue_desc:
+            if reporter and device and issue_desc:
+                # حل المشكلة: دمج حقل القسم مع تفاصيل المشكلة لتفادي خطأ السكيما
+                full_description = f"[{dept_input}] - {issue_desc}" if dept_input else issue_desc
+                
                 new_ticket = {
                     "reporter": reporter,
-                    "department": dept_input,
                     "device": device,
-                    "description": issue_desc,
+                    "description": full_description,
                     "status": "Open",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                 }
@@ -238,23 +226,34 @@ with main_tab3:
                     st.session_state.it_tickets = load_it_tickets()
                     st.rerun()
             else:
-                st.warning("⚠️ برجاء ملء جميع الحقول المطلوبة لإرسال البلاغ.")
+                st.warning("⚠️ برجاء ملء الحقول المطلوبة (اسم المبلغ، الجهاز، والمشكلة).")
 
     st.markdown("<hr>", unsafe_allow_html=True)
     
     # =========================================================
-    # 🛠️ 6. مركز التحكم وإغلاق التذاكر الفنية (للمهندس المسؤول)
+    # 🛠️ 6. مركز التحكم وإغلاق التذاكر الفنية الفعلي
     # =========================================================
     st.markdown("<h3 style='color: #3E2723;'>🛠️ مركز التحكم وإغلاق التذاكر الفنية</h3>", unsafe_allow_html=True)
     
-    # تحديث قائمة التذاكر بشكل حي
     tickets_list = load_it_tickets()
     
     if not tickets_list:
         st.info("ℹ️ لا توجد تذاكر مسجلة حالياً في النظام.")
     else:
-        # إدخال اسم المهندس لحفظه عند الإغلاق
-        eng_name = st.text_input("👷 اسم المهندس المسؤول الحالي:", value="الدعم الفني")
+        eng_name = st.text_input("群体 اسم المهندس المسؤول الحالي:", value="الدعم الفني")
         
-        # تقسيم الشاشة للتذاكر المفتوحة والمغلقة
-        open_tickets = [t for t in tickets_list if t.get("status") == "Open"]
+        open_tickets = [t for t in tickets_list if t.get("status") == "Open" or t.get("status") is None]
+        closed_tickets = [t for t in tickets_list if t.get("status") == "Closed"]
+        
+        tab_open, tab_closed = st.tabs([f"📥 تذاكر مفتوحة وقيد الانتظار ({len(open_tickets)})", f"✅ تذاكر تم حلها وإغلاقها ({len(closed_tickets)})"])
+        
+        with tab_open:
+            if not open_tickets:
+                st.success("🎉 ممتاز! لا توجد أي تذاكر مفتوحة حالياً.")
+            else:
+                # نافذة التحقق من الباسورد الذكية والخفية إذا تم تحديد تذكرة معينة
+                if st.session_state.active_close_id:
+                    st.markdown("#### 🔒 تأكيد الإغلاق الآمن للمهندسين")
+                    # حقل باسورد غير مرئي تماماً بنمط التشفير
+                    password_input = st.text_input("الرجاء إدخال كلمة مرور المهندس للإغلاق:", type="password", key="secure_pwd_field")
+                    
