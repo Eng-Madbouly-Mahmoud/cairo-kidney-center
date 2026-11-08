@@ -153,7 +153,7 @@ if 'appointments' not in st.session_state:
 col_logo, col_banner = st.columns([1, 5])
 with col_logo:
     if os.path.exists("logo.png"):
-        st.image("logo.png", use_container_width=True)
+        st.image("logo.png")
     else:
         st.markdown("<h1 style='text-align: center;'>🩺</h1>", unsafe_allow_html=True)
 
