@@ -77,10 +77,20 @@ st.markdown("""
             width: 100%;
         }
         
-        /* كروت عرض التذاكر مخصصة بخلفية لبني خفيفة وحدود بني */
-        .ticket-card {
+        /* كروت عرض التذاكر المفتوحة بخلفية لبني خفيفة وحدود بني */
+        .ticket-card-open {
             background-color: #E0F2FE; /* لبني فاتح مريح */
             border-right: 6px solid #5C4033; /* حدود بني رئيسي */
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* كروت عرض التذاكر المغلقة بخلفية رمادية خفيفة وحدود خضراء للإغلاق */
+        .ticket-card-closed {
+            background-color: #F1F5F9; 
+            border-right: 6px solid #10B981; /* حدود خضراء */
             padding: 15px;
             border-radius: 10px;
             margin-bottom: 15px;
@@ -146,7 +156,8 @@ def insert_it_ticket(new_ticket):
 def close_it_ticket_in_db(ticket_id, engineer_name):
     try:
         fields = {
-            "status": f"Closed (تم الحل والإغلاق بواسطة م/ {engineer_name}) ✅",
+            "status": f"Closed",
+            "closed_by": engineer_name,
             "closed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
         }
         supabase.table("tickets").update(fields).eq("id", ticket_id).execute()
@@ -163,12 +174,6 @@ if 'appointments' not in st.session_state:
 
 if 'it_tickets' not in st.session_state:
     st.session_state.it_tickets = load_it_tickets()
-
-if 'it_next_id' not in st.session_state:
-    if st.session_state.it_tickets:
-        st.session_state.it_next_id = max([int(t['id']) for t in st.session_state.it_tickets]) + 1
-    else:
-        st.session_state.it_next_id = 101
 
 # =========================================================
 # 🏥 5. هيدر الواجهة (عرض اللوجو واسم مركز دكتور رشاد برسوم)
@@ -204,7 +209,7 @@ main_tab3, main_tab2, main_tab1 = st.tabs([
 with main_tab3:
     st.markdown("<h3 style='color: #3E2723;'>⚙️ تسجيل وتتبع بلاغات وأعطال الأجهزة الطبية</h3>", unsafe_allow_html=True)
     
-    # فورم إدخال البلاغات - تم إضافة حقل القسم لحل مشكلة السوبابيز
+    # فورم إدخال البلاغات
     with st.form("it_ticket_form", clear_on_submit=True):
         t1, t2, t3 = st.columns(3)
         with t1: 
@@ -215,38 +220,41 @@ with main_tab3:
             device = st.text_input("💻 اسم الجهاز أو العطل التقني:")
         
         issue_desc = st.text_area("📋 تفاصيل المشكلة أو العطل التقني:")
-        submit_it = st.form_submit_button("🚀 إرسال بلاغ الدعم الفني وتوليد تذكرة مسلسلة")
         
-        if submit_it:
-            if reporter.strip() and device.strip() and dept_input.strip():
-                full_issue_text = f"الجهاز: {device} | التفاصيل: {issue_desc if issue_desc.strip() else 'لا توجد تفاصيل'}"
-                
-                # بناء البيانات متضمناً حقل الـ dept لحل الخطأ الظاهر في الصورة
-                ticket_payload = {
-                    "id": int(st.session_state.it_next_id),
-                    "name": reporter,
-                    "dept": dept_input,  # الحل الجذري للمشكلة
-                    "issue": full_issue_text,
-                    "status": "Pending (قيد الانتظار) ⏳",
+        submit_ticket = st.form_submit_button("📢 إرسال بلاغ الدعم الفني وتوليد تذكرة سلسلة")
+        
+        if submit_ticket:
+            if reporter and dept_input and device and issue_desc:
+                new_ticket = {
+                    "reporter": reporter,
+                    "department": dept_input,
+                    "device": device,
+                    "description": issue_desc,
+                    "status": "Open",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                 }
-                if insert_it_ticket(ticket_payload):
-                    st.success(f"🛠️ تم إصدار وتثبيت تذكرة الدعم الفني المسلسلة برقم: #{st.session_state.it_next_id}")
-                    st.session_state.it_next_id += 1
+                if insert_it_ticket(new_ticket):
+                    st.success("✅ تم تسجيل البلاغ بنجاح في قاعدة البيانات السحابية!")
+                    st.session_state.it_tickets = load_it_tickets()
                     st.rerun()
             else:
-                st.error("❌ خطأ: يرجى ملء اسم المُبلغ، القسم الطبي، واسم الجهاز لضمان قبول التذكرة في السيرفر.")
-                
-    st.markdown("---")
-    
-    # تحديث البيانات وعرضها
-    st.session_state.it_tickets = load_it_tickets()
+                st.warning("⚠️ برجاء ملء جميع الحقول المطلوبة لإرسال البلاغ.")
+
+    st.markdown("<hr>", unsafe_allow_html=True)
     
     # =========================================================
-    # 📊 2. مركز تحكم المهندس المحترف (الإغلاق والمتابعة الذكية)
+    # 🛠️ 6. مركز التحكم وإغلاق التذاكر الفنية (للمهندس المسؤول)
     # =========================================================
-    st.markdown("### 🛠️ مركز التحكم وإغلاق التذاكر الفنية")
+    st.markdown("<h3 style='color: #3E2723;'>🛠️ مركز التحكم وإغلاق التذاكر الفنية</h3>", unsafe_allow_html=True)
     
-    if st.session_state.it_tickets:
-        # تصفية التذاكر المفتوحة فقط ليعمل عليها المهندس
-        open_tickets = [t for t in st.session_state.it_tickets if "Closed" not in t.get('status', '')]
+    # تحديث قائمة التذاكر بشكل حي
+    tickets_list = load_it_tickets()
+    
+    if not tickets_list:
+        st.info("ℹ️ لا توجد تذاكر مسجلة حالياً في النظام.")
+    else:
+        # إدخال اسم المهندس لحفظه عند الإغلاق
+        eng_name = st.text_input("👷 اسم المهندس المسؤول الحالي:", value="الدعم الفني")
+        
+        # تقسيم الشاشة للتذاكر المفتوحة والمغلقة
+        open_tickets = [t for t in tickets_list if t.get("status") == "Open"]
