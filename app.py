@@ -187,7 +187,7 @@ with tab_it:
     open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).lower() == "open"]
     closed_tickets = [t for t in tickets_list if str(t.get("status", "")).lower() == "closed"]
 
-    # نموذج تسجيل بلاغ جديد
+    # 1. نموذج تسجيل بلاغ جديد (يظهر لأي مستخدم أو طبيب عادي)
     st.markdown("### 📢 تسجيل بلاغ عطل أو مشكلة تقنية جديدة")
     with st.form("it_ticket_form", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
@@ -235,82 +235,91 @@ with tab_it:
 
     st.markdown("---")
     
-    # 🛠️ لوحة تحكم ومتابعة البلاغات مفتوحة بالكامل بدون باسورد
-    st.markdown("### 🛠️ لوحة تحكم ومتابعة جميع البلاغات التقنية")
+    # 🔐 لوحة التحكم الخاصة بالمهندسين (محمية بكلمة مرور مخفية type="password")
+    st.markdown("### 🛠️ بوابة تحكم مهندسي الـ IT (متابعة وإغلاق البلاغات)")
     
-    # إحصائيات سريعة (KPIs)
-    k1, k2, k3 = st.columns(3)
-    with k1:
-        st.markdown(f"""<div class="metric-card"><h4>📥 البلاغات المفتوحة</h4><h2 style="color: #0284C7; margin:0;">{len(open_tickets)}</h2></div>""", unsafe_allow_html=True)
-    with k2:
-        st.markdown(f"""<div class="metric-card"><h4>✅ البلاغات المنجزة</h4><h2 style="color: #10B981; margin:0;">{len(closed_tickets)}</h2></div>""", unsafe_allow_html=True)
-    with k3:
-        st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات المسجلة</h4><h2 style="color: #475569; margin:0;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
+    admin_pass = st.text_input("🔒 أدخل رمز الأمان السري الخاص بالمهندسين للتحكم في التذاكر:", type="password", placeholder="أدخل الباسورد هنا...")
+    
+    if admin_pass == "2026":
+        st.success("🔓 تم تسجيل الدخول بنجاح لصلاحيات مهندسي الدعم الفني.")
+        
+        # إحصائيات سريعة (KPIs)
+        k1, k2, k3 = st.columns(3)
+        with k1:
+            st.markdown(f"""<div class="metric-card"><h4>📥 البلاغات المفتوحة</h4><h2 style="color: #0284C7; margin:0;">{len(open_tickets)}</h2></div>""", unsafe_allow_html=True)
+        with k2:
+            st.markdown(f"""<div class="metric-card"><h4>✅ البلاغات المنجزة</h4><h2 style="color: #10B981; margin:0;">{len(closed_tickets)}</h2></div>""", unsafe_allow_html=True)
+        with k3:
+            st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات المسجلة</h4><h2 style="color: #475569; margin:0;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
 
-    sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة قيد الإجراء ({len(open_tickets)})", f"✅ سجل جميع البلاغات المنجزة ({len(closed_tickets)})"])
+        sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة قيد الإجراء ({len(open_tickets)})", f"✅ سجل جميع البلاغات المنجزة ({len(closed_tickets)})"])
 
-    with sub_tab1:
-        if not open_tickets:
-            st.success("🎉 ممتاز! لا توجد أي أعطال مفتوحة حالياً، جميع أجهزة وأقسام المستشفى تعمل بكفاءة تامة.")
-        else:
-            # اختيار المهندس المسؤول من القائمة المنسدلة
-            selected_engineer = st.selectbox("👷 اختر اسم مهندس الدعم الفني القائم بالحل:", ["م/ مدبولي محمود", "م/ مارسيلينو مجدي"])
-            st.markdown("<br>", unsafe_allow_html=True)
-            
-            for t in open_tickets:
-                ticket_id = t.get('id')
-                ticket_dept = t.get('dept') or 'عام'
-                ticket_device = t.get('device') or 'جهاز'
-                ticket_issue = t.get('issue') or 'لا توجد تفاصيل'
-                ticket_reporter = t.get('reporter')
-                ticket_time = str(t.get('created_at', ''))[:16]
+        with sub_tab1:
+            if not open_tickets:
+                st.success("🎉 ممتاز! لا توجد أي أعطال مفتوحة حالياً، جميع أجهزة وأقسام المستشفى تعمل بكفاءة تامة.")
+            else:
+                # اختيار المهندس المسؤول بناءً على طلبك (م/ مدبولي محمود أو م/ مارسيلينو مجدي)
+                selected_engineer = st.selectbox("👷 اختر اسم مهندس الدعم الفني القائم بالحل:", ["م/ مدبولي محمود", "م/ مارسيلينو مجدي"])
+                st.markdown("<br>", unsafe_allow_html=True)
                 
-                st.markdown(f"""
-                    <div class="it-ticket-card">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{ticket_id} - {ticket_device}</h4>
-                            <span class="ticket-badge">القسم: {ticket_dept}</span>
+                for t in open_tickets:
+                    ticket_id = t.get('id')
+                    ticket_dept = t.get('dept') or 'عام'
+                    ticket_device = t.get('device') or 'جهاز'
+                    ticket_issue = t.get('issue') or 'لا توجد تفاصيل'
+                    ticket_reporter = t.get('reporter')
+                    ticket_time = str(t.get('created_at', ''))[:16]
+                    
+                    st.markdown(f"""
+                        <div class="it-ticket-card">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{ticket_id} - {ticket_device}</h4>
+                                <span class="ticket-badge">القسم: {ticket_dept}</span>
+                            </div>
+                            <p style="margin: 12px 0 6px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {ticket_reporter}</p>
+                            <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
+                            <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {ticket_time}</p>
                         </div>
-                        <p style="margin: 12px 0 6px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {ticket_reporter}</p>
-                        <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
-                        <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {ticket_time}</p>
-                    </div>
-                """, unsafe_allow_html=True)
-                
-                if st.button(f"✔️ إغلاق التذكرة رقم #{ticket_id} وتعيين بواسطة ({selected_engineer})", key=f"close_btn_{ticket_id}"):
-                    if close_it_ticket_in_db(ticket_id, selected_engineer):
-                        st.success(f"تم إغلاق التذكرة #{ticket_id} بنجاح بواسطة المهندس ({selected_engineer})!")
-                        st.rerun()
-                st.markdown("---")
+                    """, unsafe_allow_html=True)
+                    
+                    if st.button(f"✔️ إغلاق التذكرة رقم #{ticket_id} وتعيين بواسطة ({selected_engineer})", key=f"close_btn_{ticket_id}"):
+                        if close_it_ticket_in_db(ticket_id, selected_engineer):
+                            st.success(f"تم إغلاق التذكرة #{ticket_id} بنجاح بواسطة المهندس ({selected_engineer})!")
+                            st.rerun()
+                    st.markdown("---")
 
-    with sub_tab2:
-        if not closed_tickets:
-            st.info("لا توجد تذاكر مغلقة حتى الآن.")
-        else:
-            formatted_closed = []
-            for t in closed_tickets:
-                formatted_closed.append({
-                    "رقم البلاغ": t.get("id"),
-                    "المُبلّغ": t.get("reporter"),
-                    "القسم": t.get("dept"),
-                    "الجهاز / النظام": t.get("device"),
-                    "تفاصيل العطل": t.get("issue"),
-                    "المهندس المعالج": t.get("closed_by") or "غير محدد",
-                    "وقت الإغلاق": str(t.get("closed_at", ""))[:16]
-                })
-            df_closed = pd.DataFrame(formatted_closed)
-            st.dataframe(df_closed, use_container_width=True)
+        with sub_tab2:
+            if not closed_tickets:
+                st.info("لا توجد تذاكر مغلقة حتى الآن.")
+            else:
+                formatted_closed = []
+                for t in closed_tickets:
+                    formatted_closed.append({
+                        "رقم البلاغ": t.get("id"),
+                        "المُبلّغ": t.get("reporter"),
+                        "القسم": t.get("dept"),
+                        "الجهاز / النظام": t.get("device"),
+                        "تفاصيل العطل": t.get("issue"),
+                        "المهندس المعالج": t.get("closed_by") or "غير محدد",
+                        "وقت الإغلاق": str(t.get("closed_at", ""))[:16]
+                    })
+                df_closed = pd.DataFrame(formatted_closed)
+                st.dataframe(df_closed, use_container_width=True)
 
-            # زر تحميل وتنزيل التقارير بصيغة CSV
-            csv_data = df_closed.to_csv(index=False).encode('utf-8-sig')
-            st.download_button(
-                label="📥 تحميل تقرير الصيانة والبلاغات المنجزة (CSV)",
-                data=csv_data,
-                file_name=f"IT_Maintenance_Report_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                mime="text/csv"
-            )
+                # زر تحميل وتنزيل التقارير بصيغة CSV
+                csv_data = df_closed.to_csv(index=False).encode('utf-8-sig')
+                st.download_button(
+                    label="📥 تحميل تقرير الصيانة والبلاغات المنجزة (CSV)",
+                    data=csv_data,
+                    file_name=f"IT_Maintenance_Report_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                    mime="text/csv"
+                )
+    elif admin_pass != "":
+        st.error("❌ رمز الأمان غير صحيح. يرجى إدخال الباسورد المخصص لمهندسي الدعم الفني فقط.")
+    else:
+        st.info("🔒 لوحة تحكم المهندسين ومتابعة التذاكر محمية برمز أمان. يرجى إدخال الباسورد أعلاه لفتحها وإدارة الأعطال.")
 
 # =========================================================
 # 2️⃣ تبويب سجلات المرضى والعيادات
