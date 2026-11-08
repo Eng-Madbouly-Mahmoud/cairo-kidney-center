@@ -139,7 +139,6 @@ def insert_it_ticket(new_ticket):
 
 def close_it_ticket_in_db(ticket_id, engineer_name):
     try:
-        # نقوم بالتحديث بناءً على عمود الـ status والـ id المضمونين في أي جدول تذاكر
         fields = {
             "status": "Closed"
         }
@@ -209,9 +208,7 @@ with main_tab3:
         
         if submit_ticket:
             if reporter and device:
-                # دمج كافة الحقول والوصف المجهول داخل حقل الـ device لتجنب أي نقص في أعمدة السوبابيز
                 combined_device_info = f"{device} ({dept_input}) - {issue_desc}"
-                
                 new_ticket = {
                     "reporter": reporter,
                     "device": combined_device_info,
@@ -238,7 +235,6 @@ with main_tab3:
     else:
         eng_name = st.text_input("👷 اسم المهندس المسؤول الحالي:", value="الدعم الفني")
         
-        # فرز ذكي وآمن للتذاكر لمنع توقف الكود
         open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).strip().lower() in ["open", "none", ""]]
         closed_tickets = [t for t in tickets_list if str(t.get("status", "")).strip().lower() == "closed"]
         
@@ -248,7 +244,6 @@ with main_tab3:
             if not open_tickets:
                 st.success("🎉 ممتاز! لا توجد أي تذاكر مفتوحة حالياً.")
             else:
-                # بوب آب الباسورد غير المرئي عند طلب إغلاق تذكرة
                 if st.session_state.active_close_id:
                     st.markdown("#### 🔒 تأكيد الإغلاق الآمن للمهندسين")
                     password_input = st.text_input("الرجاء إدخال كلمة مرور المهندس للإغلاق:", type="password", key="secure_pwd_field")
@@ -257,3 +252,8 @@ with main_tab3:
                     with c1:
                         if st.button("✔️ تأكيد وإغلاق التذكرة الآن"):
                             if password_input == "2026":
+                                if close_it_ticket_in_db(st.session_state.active_close_id, eng_name):
+                                    st.success("✅ تمت العملية بنجاح!")
+                                    st.session_state.active_close_id = None
+                                    st.session_state.it_tickets = load_it_tickets()
+                                    st.rerun()
