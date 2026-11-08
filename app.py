@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 # =========================================================
-# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي (خطوط كبيرة وواضحة)
+# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي (خطوط واضحة جداً)
 # =========================================================
 st.set_page_config(
     page_title="مركز القاهرة لأمراض الكلى", 
@@ -21,7 +21,7 @@ st.markdown("""
         :root { color-scheme: light !important; }
         .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; direction: rtl; }
         
-        /* تكبير وتنسيق التبويبات */
+        /* تنسيق وتكبير التبويبات */
         .stTabs [data-baseweb="tab-list"] {
             gap: 10px;
             background-color: #E2E8F0;
@@ -43,7 +43,7 @@ st.markdown("""
             color: #FFFFFF !important;
         }
         
-        /* تكبير جميع الخطوط والعناوين لضمان الوضوح التام */
+        /* تكبير جميع الخطوط والعناوين لضمان الوضوح التام على الموبايل */
         h1, h2, h3, h4, label {
             font-family: "Cairo", sans-serif !important;
             text-align: right;
@@ -53,9 +53,8 @@ st.markdown("""
         h2 { font-size: 24px !important; color: #0C4A6E !important; }
         h3 { font-size: 22px !important; color: #1E293B !important; }
         
-        /* تكبير خطوط حقول الإدخال والـ Labels */
         .stTextInput label, .stSelectbox label, .stTextArea label {
-            font-size: 16px !important;
+            font-size: 17px !important;
             font-weight: bold !important;
             color: #0F172A !important;
         }
@@ -63,7 +62,7 @@ st.markdown("""
         .stButton > button {
             background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
             color: #FFFFFF !important;
-            font-size: 16px !important;
+            font-size: 17px !important;
             font-weight: bold !important;
             border-radius: 10px !important;
             border: none !important;
@@ -164,14 +163,16 @@ def close_it_ticket_in_db(ticket_id, eng_name):
         return False
 
 # =========================================================
-# 🏥 الهيدر الرئيسي للمستشفى (عرض اللوجو بوضوح)
+# 🏥 الهيدر الرئيسي للمستشفى (اللوجو الصحيح)
 # =========================================================
 col_logo, col_banner = st.columns([1, 4])
 with col_logo:
-    # يدعم ملف logo.jpg أو لوجو.jpg
-    logo_file = "logo.jpg" if os.path.exists("logo.jpg") else ("لوجو.jpg" if os.path.exists("لوجو.jpg") else None)
-    if logo_file:
-        st.image(logo_file, use_container_width=True)
+    # البحث التلقائي عن اسم اللوجو بكل الاحتمالات المتاحة
+    possible_logos = ["logo.jpg", "لوجو.jpg", "logo_2.jpg", "لوجو_2.jpg", "logo.png", "لوجو.png"]
+    found_logo = next((f for f in possible_logos if os.path.exists(f)), None)
+    
+    if found_logo:
+        st.image(found_logo, use_container_width=True)
     else:
         st.markdown("<h1 style='text-align: center; font-size: 50px;'>🩺</h1>", unsafe_allow_html=True)
 
