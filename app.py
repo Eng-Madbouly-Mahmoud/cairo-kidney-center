@@ -70,19 +70,6 @@ st.markdown("""
             border-right: 6px solid #0284C7;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: right;
-            transition: transform 0.2s;
-        }
-        .it-ticket-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-        }
-        .ticket-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #F1F5F9;
-            padding-bottom: 10px;
-            margin-bottom: 12px;
         }
         .ticket-badge {
             background: #E0F2FE;
@@ -203,20 +190,20 @@ with tab_it:
         with c1:
             reporter = st.text_input("👤 اسم المُبلّغ:")
         with c2:
-            department = st.text_input("🏥 القسم الطبي:", placeholder="مثل: الغسيل الكلوي، الاستقبال...")
+            dept = st.text_input("🏥 القسم أو الوحدة:", placeholder="مثل: وحدة الغسيل الكلوي، الاستقبال...")
         with c3:
-            device = st.text_input("💻 اسم الجهاز أو العطل:")
+            device = st.text_input("💻 اسم الجهاز أو الأداة:")
             
-        issue_desc = st.text_area("📋 تفاصيل المشكلة بدقة:")
+        issue = st.text_area("📋 تفاصيل المشكلة أو العطل بدقة:")
         submit_btn = st.form_submit_button("🚀 إرسال البلاغ لقسم الدعم الفني")
         
         if submit_btn:
-            if reporter and device:
+            if reporter and device and issue:
                 ticket_data = {
                     "reporter": reporter,
-                    "dept": department,  # تم التعديل لتتوافق مع عمود dept في Supabase
+                    "dept": dept,
                     "device": device,
-                    "issue_desc": issue_desc,
+                    "issue": issue,
                     "status": "Open"
                 }
                 if insert_it_ticket(ticket_data):
@@ -224,7 +211,7 @@ with tab_it:
                     st.session_state.it_tickets = load_it_tickets()
                     st.rerun()
             else:
-                st.warning("⚠️ يرجى ملء اسم المُبلّغ واسم الجهاز على الأقل.")
+                st.warning("⚠️ يرجى ملء اسم المُبلّغ، اسم الجهاز، وتفاصيل المشكلة على الأقل.")
 
     st.markdown("---")
     st.markdown("### 🛠️ لوحة متابعة وإغلاق التذاكر الفنية")
@@ -233,33 +220,34 @@ with tab_it:
     open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).lower() == "open"]
     closed_tickets = [t for t in tickets_list if str(t.get("status", "")).lower() == "closed"]
 
-    sub_tab1, sub_tab2 = st.tabs([f"📥 بلاغات قيد الانتظار ({len(open_tickets)})", f"✅ بلاغات منجزة ({len(closed_tickets)})"])
+    sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة ({len(open_tickets)})", f"✅ البلاغات المنجزة ({len(closed_tickets)})"])
 
     with sub_tab1:
         if not open_tickets:
             st.success("🎉 لا توجد أي أعطال مفتوحة حالياً، كل الأجهزة تعمل بكفاءة!")
         else:
-            eng_name = st.text_input("👷 اسم المهندس المعالج:", value="مهندس الـ IT", key="eng_name_input")
+            eng_name = st.text_input("👷 اسم مهندس الدعم الفني المعالج:", value="مهندس الـ IT", key="eng_name_input")
             st.markdown("<br>", unsafe_allow_html=True)
             
             for t in open_tickets:
-                # تصميم عصري واحترافي لكروت التذاكر المفتوحة
-                dept_name = t.get('dept') or t.get('department') or 'عام'
+                ticket_dept = t.get('dept') or t.get('department') or 'عام'
+                ticket_issue = t.get('issue') or t.get('issue_desc') or 'لا توجد تفاصيل'
+                
                 st.markdown(f"""
                     <div class="it-ticket-card">
                         <div style="display: flex; justify-content: space-between; align-items: center;">
                             <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{t.get('id')} - {t.get('device')}</h4>
-                            <span class="ticket-badge">القسم: {dept_name}</span>
+                            <span class="ticket-badge">القسم: {ticket_dept}</span>
                         </div>
-                        <p style="margin: 10px 0 5px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {t.get('reporter')}</p>
-                        <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 التفاصيل:</strong> {t.get('issue_desc') or 'لا توجد تفاصيل إضافية'}</p>
+                        <p style="margin: 12px 0 6px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {t.get('reporter')}</p>
+                        <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
                         <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {str(t.get('created_at', ''))[:16]}</p>
                     </div>
                 """, unsafe_allow_html=True)
                 
                 c_pwd, c_btn = st.columns([2, 1])
                 with c_pwd:
-                    pwd = st.text_input("رمز الأمان للإغلاق:", type="password", key=f"pwd_{t['id']}")
+                    pwd = st.text_input("رمز الأمان لإغلاق التذكرة:", type="password", key=f"pwd_{t['id']}")
                 with c_btn:
                     st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
                     if st.button("✔️ إغلاق التذكرة", key=f"close_btn_{t['id']}"):
@@ -276,7 +264,6 @@ with tab_it:
         if not closed_tickets:
             st.info("لا توجد تذاكر مغلقة حتى الآن.")
         else:
-            # توحيد عرض الأعمدة حتى لو كانت أسماء الأعمدة القديمة dept أو department
             formatted_closed = []
             for t in closed_tickets:
                 formatted_closed.append({
@@ -284,6 +271,7 @@ with tab_it:
                     "المُبلّغ": t.get("reporter"),
                     "الجهاز": t.get("device"),
                     "القسم": t.get("dept") or t.get("department"),
+                    "تفاصيل العطل": t.get("issue") or t.get("issue_desc"),
                     "المهندس المسؤول": t.get("closed_by"),
                     "تاريخ الإغلاق": str(t.get("closed_at", ""))[:16]
                 })
