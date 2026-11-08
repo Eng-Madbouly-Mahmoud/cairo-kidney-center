@@ -10,7 +10,7 @@ import os
 # ⚙️ 1. إعدادات الصفحة الفاخرة والمخصصة لمركز دكتور رشاد برسوم
 # =========================================================
 st.set_page_config(
-    page_title="مركز دكتور رشاد برسوم - تحت الإنشاء", 
+    page_title="مركز دكتور رشاد برسوم - إدارة التذاكر", 
     page_icon="🩺", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -43,7 +43,7 @@ st.markdown("""
             box-shadow: 0 4px 10px rgba(0,0,0,0.06);
             transition: all 0.3s ease;
         }
-        /* التاب النشط: مزيج متدرج بين اللبني والبني الغامق لتباين مبهر على الموبايل */
+        /* التاب النشط */
         .stTabs [aria-selected="true"] {
             background: linear-gradient(135deg, #0EA5E9 0%, #3E2723 100%) !important;
             color: #FFFFFF !important;
@@ -69,16 +69,12 @@ st.markdown("""
             background: linear-gradient(135deg, #38BDF8 0%, #0284C7 100%) !important;
             color: #FFFFFF !important;
             font-weight: 700 !important;
-            font-size: 16px !important;
+            font-size: 15px !important;
             border-radius: 8px !important;
             border: none !important;
             box-shadow: 0 4px 12px rgba(2, 132, 199, 0.2);
             transition: all 0.3s ease;
             width: 100%;
-        }
-        .stButton > button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 18px rgba(2, 132, 199, 0.35);
         }
         
         /* كروت عرض التذاكر مخصصة بخلفية لبني خفيفة وحدود بني */
@@ -89,6 +85,16 @@ st.markdown("""
             border-radius: 10px;
             margin-bottom: 15px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+        
+        /* تصميم لوحة التحكم الافتراضية للمهندسين */
+        .dashboard-box {
+            background: #FFFFFF;
+            border: 1px solid #E2E8F0;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            margin-bottom: 25px;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -121,18 +127,12 @@ def insert_appointment(new_app):
         st.error(f"خطأ سحابي في ملف المريض: {e}")
         return False
 
-def update_appointment_in_db(app_id, fields):
-    try:
-        supabase.table("appointments").update(fields).eq("id", app_id).execute()
-        return True
-    except Exception:
-        return False
-
 def load_it_tickets():
     try:
-        response = supabase.table("tickets").select("*").order("id", desc=False).execute()
+        response = supabase.table("tickets").select("*").order("id", desc=True).execute()
         return response.data or []
-    except Exception:
+    except Exception as e:
+        st.error(f"خطأ في جلب التذاكر: {e}")
         return []
 
 def insert_it_ticket(new_ticket):
@@ -140,10 +140,9 @@ def insert_it_ticket(new_ticket):
         supabase.table("tickets").insert(new_ticket).execute()
         return True
     except Exception as e:
-        st.error(f"خطأ في إرسال تذكرة الـ IT: {e}")
+        st.error(f"🛠️ خطأ في إرسال تذكرة الـ IT: {e}")
         return False
 
-# دالة لتحديث حالة التذكرة عند الإغلاق بواسطة المهندس
 def close_it_ticket_in_db(ticket_id, engineer_name):
     try:
         fields = {
@@ -165,12 +164,6 @@ if 'appointments' not in st.session_state:
 if 'it_tickets' not in st.session_state:
     st.session_state.it_tickets = load_it_tickets()
 
-if 'patient_next_id' not in st.session_state:
-    if st.session_state.appointments:
-        st.session_state.patient_next_id = max([int(a['id']) for a in st.session_state.appointments]) + 1
-    else:
-        st.session_state.patient_next_id = 5001
-
 if 'it_next_id' not in st.session_state:
     if st.session_state.it_tickets:
         st.session_state.it_next_id = max([int(t['id']) for t in st.session_state.it_tickets]) + 1
@@ -186,19 +179,19 @@ with col_logo:
     if os.path.exists("logo.png"):
         st.image("logo.png", use_container_width=True)
     else:
-        st.markdown("<h1 style='font-size: 80px; text-align: center; margin: 0;'>🩺</h1>", unsafe_allow_html=True)
+        st.markdown("<h1 style='font-size: 60px; text-align: center; margin: 0;'>🩺</h1>", unsafe_allow_html=True)
 
 with col_banner:
     st.markdown("""
         <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 22px; border-radius: 12px; border-right: 8px solid #5C4033;'>
-            <h1 style='margin: 0; color: #3E2723 !important; font-size: 26px; font-weight: bold;'>مركز دكتور رشاد برسوم - (تحت الإنشاء)</h1>
-            <p style='margin: 5px 0 0 0; color: #5C4033 !important; font-size: 16px; font-weight: 600;'>المنظومة السحابية الموحدة لإدارة العيادات التخصصية وجلسات الغسيل الكلوي والدعم التقني</p>
+            <h1 style='margin: 0; color: #3E2723 !important; font-size: 24px; font-weight: bold;'>مركز دكتور رشاد برسوم - المنظومة السحابية الموحدة</h1>
+            <p style='margin: 5px 0 0 0; color: #5C4033 !important; font-size: 15px; font-weight: 600;'>إدارة العيادات التخصصية وجلسات الغسيل الكلوي والدعم التقني المتقدم</p>
         </div>
     """, unsafe_allow_html=True)
 
 st.markdown("<br>", unsafe_allow_html=True)
 
-# 📑 التابّات الرئيسية (تكنولوجيا المعلومات كأول تبويب على اليسار)
+# التابّات الرئيسية
 main_tab3, main_tab2, main_tab1 = st.tabs([
     "⚙️ تكنولوجيا المعلومات والدعم الفني (IT Support)", 
     "🩺 عيادة الأطباء والسجلات السحابية", 
@@ -206,45 +199,54 @@ main_tab3, main_tab2, main_tab1 = st.tabs([
 ])
 
 # =========================================================
-# 1️⃣ تكنولوجيا المعلومات والدعم الفني (تذاكر الأعطال)
+# 1️⃣ تكنولوجيا المعلومات والدعم الفني (مركز التحكم والتذاكر)
 # =========================================================
 with main_tab3:
     st.markdown("<h3 style='color: #3E2723;'>⚙️ تسجيل وتتبع بلاغات وأعطال الأجهزة الطبية</h3>", unsafe_allow_html=True)
     
+    # فورم إدخال البلاغات - تم إضافة حقل القسم لحل مشكلة السوبابيز
     with st.form("it_ticket_form", clear_on_submit=True):
-        t1, t2 = st.columns(2)
-        with t1: reporter = st.text_input("👤 اسم المُبلغ أو القسم الطبي:")
-        with t2: device = st.text_input("💻 اسم الجهاز أو العطل التقني:")
+        t1, t2, t3 = st.columns(3)
+        with t1: 
+            reporter = st.text_input("👤 اسم المُبلغ:")
+        with t2: 
+            dept_input = st.text_input("🏥 القسم الطبي (مطلوب لـ Supabase):", placeholder="مثال: الغسيل الكلوي، العيادات...")
+        with t3: 
+            device = st.text_input("💻 اسم الجهاز أو العطل التقني:")
         
         issue_desc = st.text_area("📋 تفاصيل المشكلة أو العطل التقني:")
         submit_it = st.form_submit_button("🚀 إرسال بلاغ الدعم الفني وتوليد تذكرة مسلسلة")
         
         if submit_it:
-            if reporter.strip() and device.strip():
+            if reporter.strip() and device.strip() and dept_input.strip():
                 full_issue_text = f"الجهاز: {device} | التفاصيل: {issue_desc if issue_desc.strip() else 'لا توجد تفاصيل'}"
+                
+                # بناء البيانات متضمناً حقل الـ dept لحل الخطأ الظاهر في الصورة
                 ticket_payload = {
                     "id": int(st.session_state.it_next_id),
                     "name": reporter,
+                    "dept": dept_input,  # الحل الجذري للمشكلة
                     "issue": full_issue_text,
                     "status": "Pending (قيد الانتظار) ⏳",
                     "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
                 }
                 if insert_it_ticket(ticket_payload):
-                    st.session_state.it_tickets = load_it_tickets()
                     st.success(f"🛠️ تم إصدار وتثبيت تذكرة الدعم الفني المسلسلة برقم: #{st.session_state.it_next_id}")
                     st.session_state.it_next_id += 1
                     st.rerun()
             else:
-                st.error("❌ يرجى ملء اسم المُبلغ واسم الجهاز لإرسال البلاغ.")
+                st.error("❌ خطأ: يرجى ملء اسم المُبلغ، القسم الطبي، واسم الجهاز لضمان قبول التذكرة في السيرفر.")
                 
     st.markdown("---")
-    st.markdown("##### 📋 سجل تذاكر البلاغات والاتصالات الفنية المسلسلة بالمركز")
     
-    # جلب التذاكر الحالية من الـ Supabase لضمان التزامن
+    # تحديث البيانات وعرضها
     st.session_state.it_tickets = load_it_tickets()
     
+    # =========================================================
+    # 📊 2. مركز تحكم المهندس المحترف (الإغلاق والمتابعة الذكية)
+    # =========================================================
+    st.markdown("### 🛠️ مركز التحكم وإغلاق التذاكر الفنية")
+    
     if st.session_state.it_tickets:
-        # إضافة منطقة خاصة بالمهندس المسؤول لعمليات القفل والمتابعة
-        st.markdown("<div style='background-color: #F1F5F9; padding: 15px; border-radius: 8px; margin-bottom: 15px;'>", unsafe_allow_html=True)
-        st.markdown("🛠️ **لوحة تحكم المهندس المسؤول عن النظام:**")
-        
+        # تصفية التذاكر المفتوحة فقط ليعمل عليها المهندس
+        open_tickets = [t for t in st.session_state.it_tickets if "Closed" not in t.get('status', '')]
