@@ -7,10 +7,10 @@ import pandas as pd
 import os
 
 # =========================================================
-# ⚙️ 1. إعدادات الصفحة والتصميم الفاخر
+# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي المتجاوب مع الموبايل
 # =========================================================
 st.set_page_config(
-    page_title="مستشفى القاهرة للكلى - مركز دكتور رشاد برسوم", 
+    page_title="مركز القاهرة لأمراض الكلى", 
     page_icon="🩺", 
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -21,33 +21,44 @@ st.markdown("""
         :root { color-scheme: light !important; }
         .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; direction: rtl; }
         
+        /* تحسين التبويبات لتناسب الهواتف المحمولة */
         .stTabs [data-baseweb="tab-list"] {
-            gap: 12px;
+            gap: 8px;
             background-color: #E2E8F0;
-            padding: 8px;
-            border-radius: 14px;
+            padding: 6px;
+            border-radius: 12px;
             direction: rtl;
+            overflow-x: auto;
         }
         .stTabs [data-baseweb="tab"] {
-            height: 50px;
+            height: 45px;
             background-color: #FFFFFF;
-            border-radius: 10px;
-            font-size: 16px !important;
+            border-radius: 8px;
+            font-size: 14px !important;
             font-weight: 700 !important;
             color: #334155 !important;
-            box-shadow: 0 2px 6px rgba(0,0,0,0.05);
-            transition: all 0.2s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            white-space: nowrap;
         }
         .stTabs [aria-selected="true"] {
             background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
             color: #FFFFFF !important;
         }
         
-        h1, h2, h3, h4, label {
+        /* ضبط وضوح العناوين والخطوط على الموبايل */
+        h1, h2, h3, h4, label, p {
             font-family: "Cairo", sans-serif !important;
-            color: #1E293B !important;
-            font-weight: 700 !important;
             text-align: right;
+        }
+        
+        h2 {
+            font-size: 20px !important;
+            color: #0C4A6E !important;
+        }
+        
+        p {
+            color: #0369A1 !important;
+            font-size: 14px !important;
         }
         
         .stButton > button {
@@ -56,24 +67,25 @@ st.markdown("""
             font-weight: bold !important;
             border-radius: 8px !important;
             border: none !important;
-            padding: 10px 24px;
+            padding: 10px 20px;
             width: 100%;
         }
 
         .metric-card {
             background: #FFFFFF;
-            padding: 20px;
+            padding: 15px;
             border-radius: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.04);
             text-align: center;
             border-top: 4px solid #0284C7;
+            margin-bottom: 10px;
         }
 
         .it-ticket-card {
             background: #FFFFFF;
             border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 16px;
+            padding: 15px;
+            margin-bottom: 14px;
             border-right: 6px solid #0284C7;
             box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: right;
@@ -81,10 +93,17 @@ st.markdown("""
         .ticket-badge {
             background: #E0F2FE;
             color: #0369A1;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 13px;
+            padding: 3px 10px;
+            border-radius: 15px;
+            font-size: 12px;
             font-weight: bold;
+        }
+
+        /* ميديا كويري لتحسين الموبايل بشكل إضافي */
+        @media (max-width: 768px) {
+            h2 { font-size: 16px !important; }
+            p { font-size: 12px !important; }
+            .stTabs [data-baseweb="tab"] { font-size: 12px !important; height: 40px; }
         }
     </style>
 """, unsafe_allow_html=True)
@@ -153,20 +172,22 @@ def close_it_ticket_in_db(ticket_id, eng_name):
         return False
 
 # =========================================================
-# 🏥 الهيدر الرئيسي للمستشفى
+# 🏥 الهيدر الرئيسي للمستشفى (اللوجو الجديد)
 # =========================================================
-col_logo, col_banner = st.columns([1, 5])
+col_logo, col_banner = st.columns([1, 4])
 with col_logo:
-    if os.path.exists("logo.png"):
-        st.image("logo.png")
+    # يدعم لوجو.jpg أو logo.jpg
+    logo_path = "لوجو.jpg" if os.path.exists("لوجو.jpg") else ("logo.jpg" if os.path.exists("logo.jpg") else None)
+    if logo_path:
+        st.image(logo_path, use_container_width=True)
     else:
         st.markdown("<h1 style='text-align: center;'>🩺</h1>", unsafe_allow_html=True)
 
 with col_banner:
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 18px; border-radius: 12px; border-right: 8px solid #0369A1; text-align: right;'>
-            <h2 style='margin: 0; color: #0C4A6E !important;'>مستشفى القاهرة للكلى - مركز دكتور رشاد برسوم</h2>
-            <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px;'>نظام إدارة الدعم الفني وتكنولوجيا المعلومات (IT Helpdesk)</p>
+        <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 15px; border-radius: 12px; border-right: 8px solid #0369A1; text-align: right;'>
+            <h2 style='margin: 0; color: #0C4A6E !important;'>مركز القاهرة لأمراض الكلى</h2>
+            <p style='margin: 5px 0 0 0; color: #0369A1 !important;'>نظام إدارة الدعم الفني وتكنولوجيا المعلومات (IT Helpdesk)</p>
         </div>
     """, unsafe_allow_html=True)
 
@@ -174,25 +195,25 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # التبويبات الرئيسية
 tab_it, tab_records, tab_booking = st.tabs([
-    "⚙️ قسم تكنولوجيا المعلومات والدعم الفني",
-    "🩺 عيادة الأطباء والسجلات السحابية",
-    "📝 حجز مواعيد الفحص والعيادات"
+    "⚙️ قسم تكنولوجيا المعلومات",
+    "🩺 عيادة الأطباء والسجلات",
+    "📝 حجز مواعيد الفحص"
 ])
 
 # =========================================================
-# 1️⃣ تبويب الدعم الفني (IT Helpdesk الاحترافي)
+# 1️⃣ تبويب الدعم الفني (IT Helpdesk)
 # =========================================================
 with tab_it:
     tickets_list = load_it_tickets()
     open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).lower() == "open"]
     closed_tickets = [t for t in tickets_list if str(t.get("status", "")).lower() == "closed"]
 
-    # 1. نموذج تسجيل بلاغ جديد (يظهر لأي مستخدم أو طبيب عادي)
+    # نموذج تسجيل بلاغ جديد
     st.markdown("### 📢 تسجيل بلاغ عطل أو مشكلة تقنية جديدة")
     with st.form("it_ticket_form", clear_on_submit=True):
         c1, c2, c3 = st.columns(3)
         with c1:
-            reporter = st.text_input("👤 اسم المُبلّغ / الطبيب / الموظف:")
+            reporter = st.text_input("👤 اسم المُبلّغ / الطبيب:")
         with c2:
             dept = st.selectbox("🏥 القسم أو الوحدة:", [
                 "وحدة الغسيل الكلوي (الدور الأول)", 
@@ -228,17 +249,17 @@ with tab_it:
                     "status": "Open"
                 }
                 if insert_it_ticket(ticket_data):
-                    st.success("✅ تم إرسال البلاغ بنجاح وجاري العمل عليه من قبل فريق الدعم الفني!")
+                    st.success("✅ تم إرسال البلاغ بنجاح وجاري العمل عليه!")
                     st.rerun()
             else:
                 st.warning("⚠️ يرجى إدخال اسم المُبلّغ وتفاصيل المشكلة.")
 
     st.markdown("---")
     
-    # 🔐 لوحة التحكم الخاصة بالمهندسين (محمية بكلمة مرور مخفية type="password")
+    # 🔐 لوحة التحكم الخاصة بالمهندسين
     st.markdown("### 🛠️ بوابة تحكم مهندسي الـ IT (متابعة وإغلاق البلاغات)")
     
-    admin_pass = st.text_input("🔒 أدخل رمز الأمان السري الخاص بالمهندسين للتحكم في التذاكر:", type="password", placeholder="أدخل الباسورد هنا...")
+    admin_pass = st.text_input("🔒 أدخل رمز الأمان السري الخاص بالمهندسين للتحكم:", type="password", placeholder="أدخل الباسورد هنا...")
     
     if admin_pass == "2026":
         st.success("🔓 تم تسجيل الدخول بنجاح لصلاحيات مهندسي الدعم الفني.")
@@ -250,17 +271,16 @@ with tab_it:
         with k2:
             st.markdown(f"""<div class="metric-card"><h4>✅ البلاغات المنجزة</h4><h2 style="color: #10B981; margin:0;">{len(closed_tickets)}</h2></div>""", unsafe_allow_html=True)
         with k3:
-            st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات المسجلة</h4><h2 style="color: #475569; margin:0;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
+            st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات</h4><h2 style="color: #475569; margin:0;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة قيد الإجراء ({len(open_tickets)})", f"✅ سجل جميع البلاغات المنجزة ({len(closed_tickets)})"])
+        sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة ({len(open_tickets)})", f"✅ سجل البلاغات المنجزة ({len(closed_tickets)})"])
 
         with sub_tab1:
             if not open_tickets:
-                st.success("🎉 ممتاز! لا توجد أي أعطال مفتوحة حالياً، جميع أجهزة وأقسام المستشفى تعمل بكفاءة تامة.")
+                st.success("🎉 ممتاز! لا توجد أي أعطال مفتوحة حالياً.")
             else:
-                # اختيار المهندس المسؤول بناءً على طلبك (م/ مدبولي محمود أو م/ مارسيلينو مجدي)
                 selected_engineer = st.selectbox("👷 اختر اسم مهندس الدعم الفني القائم بالحل:", ["م/ مدبولي محمود", "م/ مارسيلينو مجدي"])
                 st.markdown("<br>", unsafe_allow_html=True)
                 
@@ -274,19 +294,19 @@ with tab_it:
                     
                     st.markdown(f"""
                         <div class="it-ticket-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
                                 <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{ticket_id} - {ticket_device}</h4>
                                 <span class="ticket-badge">القسم: {ticket_dept}</span>
                             </div>
-                            <p style="margin: 12px 0 6px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {ticket_reporter}</p>
-                            <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
-                            <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {ticket_time}</p>
+                            <p style="margin: 10px 0 5px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {ticket_reporter}</p>
+                            <p style="margin: 0 0 8px 0; color: #475569;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
+                            <p style="margin: 0; color: #94A3B8; font-size: 11px;"><strong>🕒 وقت البلاغ:</strong> {ticket_time}</p>
                         </div>
                     """, unsafe_allow_html=True)
                     
-                    if st.button(f"✔️ إغلاق التذكرة رقم #{ticket_id} وتعيين بواسطة ({selected_engineer})", key=f"close_btn_{ticket_id}"):
+                    if st.button(f"✔️ إغلاق التذكرة #{ticket_id} بواسطة ({selected_engineer})", key=f"close_btn_{ticket_id}"):
                         if close_it_ticket_in_db(ticket_id, selected_engineer):
-                            st.success(f"تم إغلاق التذكرة #{ticket_id} بنجاح بواسطة المهندس ({selected_engineer})!")
+                            st.success(f"تم إغلاق التذكرة #{ticket_id} بنجاح بواسطة ({selected_engineer})!")
                             st.rerun()
                     st.markdown("---")
 
@@ -308,18 +328,17 @@ with tab_it:
                 df_closed = pd.DataFrame(formatted_closed)
                 st.dataframe(df_closed, use_container_width=True)
 
-                # زر تحميل وتنزيل التقارير بصيغة CSV
                 csv_data = df_closed.to_csv(index=False).encode('utf-8-sig')
                 st.download_button(
-                    label="📥 تحميل تقرير الصيانة والبلاغات المنجزة (CSV)",
+                    label="📥 تحميل تقرير الصيانة والبلاغات (CSV)",
                     data=csv_data,
                     file_name=f"IT_Maintenance_Report_{datetime.now().strftime('%Y-%m-%d')}.csv",
                     mime="text/csv"
                 )
     elif admin_pass != "":
-        st.error("❌ رمز الأمان غير صحيح. يرجى إدخال الباسورد المخصص لمهندسي الدعم الفني فقط.")
+        st.error("❌ رمز الأمان غير صحيح. يرجى إدخال الباسورد المخصص لمهندسي الدعم الفني.")
     else:
-        st.info("🔒 لوحة تحكم المهندسين ومتابعة التذاكر محمية برمز أمان. يرجى إدخال الباسورد أعلاه لفتحها وإدارة الأعطال.")
+        st.info("🔒 لوحة تحكم المهندسين محمية. يرجى إدخال رمز الأمان بالأعلى لعرض التذاكر وإدارتها.")
 
 # =========================================================
 # 2️⃣ تبويب سجلات المرضى والعيادات
