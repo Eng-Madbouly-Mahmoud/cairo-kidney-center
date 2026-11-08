@@ -10,13 +10,13 @@ import os
 # ⚙️ 1. إعدادات الصفحة
 # =========================================================
 st.set_page_config(
-    page_title="مركز دكتور رشاد برسوم - المنظومة الموحدة", 
+    page_title="مستشفى القاهرة للكلى - مركز دكتور رشاد برسوم", 
     page_icon="🩺", 
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# 🎨 2. تنسيقات CSS احترافية
+# 🎨 2. تنسيقات CSS احترافية وتصميم تذاكر IT عصرية
 st.markdown("""
     <style>
         :root { color-scheme: light !important; }
@@ -61,18 +61,36 @@ st.markdown("""
             width: 100%;
         }
 
-        .ticket-card {
-            background-color: #FFFFFF;
+        /* تصميم بطاقات التذاكر الاحترافية */
+        .it-ticket-card {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 16px;
             border-right: 6px solid #0284C7;
-            padding: 16px;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: right;
+            transition: transform 0.2s;
         }
-        .ticket-card.closed {
-            border-right-color: #10B981;
-            background-color: #F8FAFC;
+        .it-ticket-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0,0,0,0.08);
+        }
+        .ticket-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #F1F5F9;
+            padding-bottom: 10px;
+            margin-bottom: 12px;
+        }
+        .ticket-badge {
+            background: #E0F2FE;
+            color: #0369A1;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: bold;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -160,7 +178,7 @@ with col_logo:
 with col_banner:
     st.markdown("""
         <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 18px; border-radius: 12px; border-right: 8px solid #0369A1; text-align: right;'>
-            <h2 style='margin: 0; color: #0C4A6E !important;'>مركز دكتور رشاد برسوم - المنظومة السحابية الموحدة</h2>
+            <h2 style='margin: 0; color: #0C4A6E !important;'>مستشفى القاهرة للكلى - مركز دكتور رشاد برسوم</h2>
             <p style='margin: 5px 0 0 0; color: #0369A1 !important; font-size: 15px;'>إدارة العيادات التخصصية، جلسات الغسيل الكلوي، والدعم الفني الذكي</p>
         </div>
     """, unsafe_allow_html=True)
@@ -196,7 +214,7 @@ with tab_it:
             if reporter and device:
                 ticket_data = {
                     "reporter": reporter,
-                    "department": department,
+                    "dept": department,  # تم التعديل لتتوافق مع عمود dept في Supabase
                     "device": device,
                     "issue_desc": issue_desc,
                     "status": "Open"
@@ -222,33 +240,54 @@ with tab_it:
             st.success("🎉 لا توجد أي أعطال مفتوحة حالياً، كل الأجهزة تعمل بكفاءة!")
         else:
             eng_name = st.text_input("👷 اسم المهندس المعالج:", value="مهندس الـ IT", key="eng_name_input")
+            st.markdown("<br>", unsafe_allow_html=True)
             
             for t in open_tickets:
-                with st.expander(f"⚠️ تذكرة رقم #{t.get('id')} - {t.get('device')} ({t.get('department', 'عام')})", expanded=True):
-                    st.write(f"**المُبلّغ:** {t.get('reporter')}")
-                    st.write(f"**التفاصيل:** {t.get('issue_desc') or 'لا توجد تفاصيل إضافية'}")
-                    st.write(f"**تاريخ البلاغ:** {t.get('created_at', '')[:16]}")
-                    
-                    c_pwd, c_btn = st.columns([2, 1])
-                    with c_pwd:
-                        pwd = st.text_input("رمز الأمان للإغلاق:", type="password", key=f"pwd_{t['id']}")
-                    with c_btn:
-                        st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
-                        if st.button("✔️ إغلاق التذكرة", key=f"close_btn_{t['id']}"):
-                            if pwd == "2026":
-                                if close_it_ticket_in_db(t["id"], eng_name):
-                                    st.success(f"تم إغلاق التذكرة #{t['id']} بنجاح!")
-                                    st.session_state.it_tickets = load_it_tickets()
-                                    st.rerun()
-                            else:
-                                st.error("❌ رمز الأمان غير صحيح.")
+                # تصميم عصري واحترافي لكروت التذاكر المفتوحة
+                dept_name = t.get('dept') or t.get('department') or 'عام'
+                st.markdown(f"""
+                    <div class="it-ticket-card">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="margin: 0; color: #0284C7;">🎫 تذكرة رقم #{t.get('id')} - {t.get('device')}</h4>
+                            <span class="ticket-badge">القسم: {dept_name}</span>
+                        </div>
+                        <p style="margin: 10px 0 5px 0; color: #334155;"><strong>👤 المُبلّغ:</strong> {t.get('reporter')}</p>
+                        <p style="margin: 0 0 10px 0; color: #475569;"><strong>📋 التفاصيل:</strong> {t.get('issue_desc') or 'لا توجد تفاصيل إضافية'}</p>
+                        <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت البلاغ:</strong> {str(t.get('created_at', ''))[:16]}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+                
+                c_pwd, c_btn = st.columns([2, 1])
+                with c_pwd:
+                    pwd = st.text_input("رمز الأمان للإغلاق:", type="password", key=f"pwd_{t['id']}")
+                with c_btn:
+                    st.markdown("<div style='height: 28px;'></div>", unsafe_allow_html=True)
+                    if st.button("✔️ إغلاق التذكرة", key=f"close_btn_{t['id']}"):
+                        if pwd == "2026":
+                            if close_it_ticket_in_db(t["id"], eng_name):
+                                st.success(f"تم إغلاق التذكرة #{t['id']} بنجاح!")
+                                st.session_state.it_tickets = load_it_tickets()
+                                st.rerun()
+                        else:
+                            st.error("❌ رمز الأمان غير صحيح.")
+                st.markdown("---")
 
     with sub_tab2:
         if not closed_tickets:
             st.info("لا توجد تذاكر مغلقة حتى الآن.")
         else:
-            df_closed = pd.DataFrame(closed_tickets)[["id", "reporter", "device", "department", "closed_by", "closed_at"]]
-            df_closed.columns = ["رقم البلاغ", "المُبلّغ", "الجهاز", "القسم", "المهندس المسؤول", "تاريخ الإغلاق"]
+            # توحيد عرض الأعمدة حتى لو كانت أسماء الأعمدة القديمة dept أو department
+            formatted_closed = []
+            for t in closed_tickets:
+                formatted_closed.append({
+                    "رقم البلاغ": t.get("id"),
+                    "المُبلّغ": t.get("reporter"),
+                    "الجهاز": t.get("device"),
+                    "القسم": t.get("dept") or t.get("department"),
+                    "المهندس المسؤول": t.get("closed_by"),
+                    "تاريخ الإغلاق": str(t.get("closed_at", ""))[:16]
+                })
+            df_closed = pd.DataFrame(formatted_closed)
             st.dataframe(df_closed, use_container_width=True)
 
 # =========================================================
