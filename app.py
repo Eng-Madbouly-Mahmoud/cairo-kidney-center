@@ -123,7 +123,7 @@ def insert_appointment(new_app):
 
 def load_it_tickets():
     try:
-        response = supabase.table("tickets").select("*").order("id", desc=True).execute()
+        response = supabase.table("tickets").select("*").execute()
         return response.data or []
     except Exception as e:
         st.error(f"خطأ في جلب التذاكر: {e}")
@@ -131,7 +131,6 @@ def load_it_tickets():
 
 def insert_it_ticket(new_ticket):
     try:
-        # قمنا بإرسال الحقول المتوفرة والمضمونة فقط في الـ Schema
         supabase.table("tickets").insert(new_ticket).execute()
         return True
     except Exception as e:
@@ -140,10 +139,9 @@ def insert_it_ticket(new_ticket):
 
 def close_it_ticket_in_db(ticket_id, engineer_name):
     try:
+        # نقوم بالتحديث بناءً على عمود الـ status والـ id المضمونين في أي جدول تذاكر
         fields = {
-            "status": "Closed",
-            "closed_by": engineer_name,
-            "closed_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
+            "status": "Closed"
         }
         supabase.table("tickets").update(fields).eq("id", ticket_id).execute()
         return True
@@ -152,7 +150,7 @@ def close_it_ticket_in_db(ticket_id, engineer_name):
         return False
 
 # =========================================================
-# 🎛️ 4. تهيئة الذاكرة التلقائية 
+# 🎛️ 4. تهيئة الذاكرة التلقائية
 # =========================================================
 if 'appointments' not in st.session_state:
     st.session_state.appointments = load_appointments()
@@ -210,28 +208,26 @@ with main_tab3:
         submit_ticket = st.form_submit_button("📢 إرسال بلاغ الدعم الفني وتوليد تذكرة سلسلة")
         
         if submit_ticket:
-            if reporter and device and issue_desc:
-                # حل المشكلة: دمج حقل القسم مع تفاصيل المشكلة لتفادي خطأ السكيما
-                full_description = f"[{dept_input}] - {issue_desc}" if dept_input else issue_desc
+            if reporter and device:
+                # دمج كافة الحقول والوصف المجهول داخل حقل الـ device لتجنب أي نقص في أعمدة السوبابيز
+                combined_device_info = f"{device} ({dept_input}) - {issue_desc}"
                 
                 new_ticket = {
                     "reporter": reporter,
-                    "device": device,
-                    "description": full_description,
-                    "status": "Open",
-                    "created_at": datetime.now().strftime("%Y-%m-%d %I:%M %p")
+                    "device": combined_device_info,
+                    "status": "Open"
                 }
                 if insert_it_ticket(new_ticket):
                     st.success("✅ تم تسجيل البلاغ بنجاح في قاعدة البيانات السحابية!")
                     st.session_state.it_tickets = load_it_tickets()
                     st.rerun()
             else:
-                st.warning("⚠️ برجاء ملء الحقول المطلوبة (اسم المبلغ، الجهاز، والمشكلة).")
+                st.warning("⚠️ برجاء ملء الحقول الأساسية (اسم المبلغ واسم الجهاز).")
 
     st.markdown("<hr>", unsafe_allow_html=True)
     
     # =========================================================
-    # 🛠️ 6. مركز التحكم وإغلاق التذاكر الفنية الفعلي
+    # 🛠️ 6. مركز التحكم وإغلاق التذاكر الفنية الفعلي بكلمة مرور 2026
     # =========================================================
     st.markdown("<h3 style='color: #3E2723;'>🛠️ مركز التحكم وإغلاق التذاكر الفنية</h3>", unsafe_allow_html=True)
     
@@ -240,10 +236,11 @@ with main_tab3:
     if not tickets_list:
         st.info("ℹ️ لا توجد تذاكر مسجلة حالياً في النظام.")
     else:
-        eng_name = st.text_input("群体 اسم المهندس المسؤول الحالي:", value="الدعم الفني")
+        eng_name = st.text_input("👷 اسم المهندس المسؤول الحالي:", value="الدعم الفني")
         
-        open_tickets = [t for t in tickets_list if t.get("status") == "Open" or t.get("status") is None]
-        closed_tickets = [t for t in tickets_list if t.get("status") == "Closed"]
+        # فرز ذكي وآمن للتذاكر لمنع توقف الكود
+        open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).strip().lower() in ["open", "none", ""]]
+        closed_tickets = [t for t in tickets_list if str(t.get("status", "")).strip().lower() == "closed"]
         
         tab_open, tab_closed = st.tabs([f"📥 تذاكر مفتوحة وقيد الانتظار ({len(open_tickets)})", f"✅ تذاكر تم حلها وإغلاقها ({len(closed_tickets)})"])
         
@@ -251,9 +248,12 @@ with main_tab3:
             if not open_tickets:
                 st.success("🎉 ممتاز! لا توجد أي تذاكر مفتوحة حالياً.")
             else:
-                # نافذة التحقق من الباسورد الذكية والخفية إذا تم تحديد تذكرة معينة
+                # بوب آب الباسورد غير المرئي عند طلب إغلاق تذكرة
                 if st.session_state.active_close_id:
                     st.markdown("#### 🔒 تأكيد الإغلاق الآمن للمهندسين")
-                    # حقل باسورد غير مرئي تماماً بنمط التشفير
                     password_input = st.text_input("الرجاء إدخال كلمة مرور المهندس للإغلاق:", type="password", key="secure_pwd_field")
                     
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        if st.button("✔️ تأكيد وإغلاق التذكرة الآن"):
+                            if password_input == "2026":
