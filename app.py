@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 # =========================================================
-# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي (خطوط واضحة جداً)
+# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي (خطوط واضحة)
 # =========================================================
 st.set_page_config(
     page_title="مركز القاهرة لأمراض الكلى", 
@@ -21,7 +21,6 @@ st.markdown("""
         :root { color-scheme: light !important; }
         .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; direction: rtl; }
         
-        /* تنسيق وتكبير التبويبات */
         .stTabs [data-baseweb="tab-list"] {
             gap: 10px;
             background-color: #E2E8F0;
@@ -43,7 +42,6 @@ st.markdown("""
             color: #FFFFFF !important;
         }
         
-        /* تكبير جميع الخطوط والعناوين لضمان الوضوح التام على الموبايل */
         h1, h2, h3, h4, label {
             font-family: "Cairo", sans-serif !important;
             text-align: right;
@@ -167,7 +165,6 @@ def close_it_ticket_in_db(ticket_id, eng_name):
 # =========================================================
 col_logo, col_banner = st.columns([1, 4])
 with col_logo:
-    # البحث التلقائي عن اسم اللوجو بكل الاحتمالات المتاحة
     possible_logos = ["logo.jpg", "لوجو.jpg", "logo_2.jpg", "لوجو_2.jpg", "logo.png", "لوجو.png"]
     found_logo = next((f for f in possible_logos if os.path.exists(f)), None)
     
@@ -198,8 +195,10 @@ tab_it, tab_records, tab_booking = st.tabs([
 # =========================================================
 with tab_it:
     tickets_list = load_it_tickets()
-    open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).lower() == "open"]
-    closed_tickets = [t for t in tickets_list if str(t.get("status", "")).lower() == "closed"]
+    
+    # تصنيف دقيق ومرن للبلاغات بناءً على قيمة status في قاعدة البيانات
+    open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).strip().lower() in ["open", "pending", "قيد الانتظار", "active", ""]]
+    closed_tickets = [t for t in tickets_list if str(t.get("status", "")).strip().lower() in ["closed", "done", "تم الحل", "completed"]]
 
     # نموذج تسجيل بلاغ جديد
     st.markdown("### 📢 تسجيل بلاغ عطل أو مشكلة تقنية جديدة")
@@ -268,7 +267,11 @@ with tab_it:
 
         st.markdown("<br>", unsafe_allow_html=True)
 
-        sub_tab1, sub_tab2 = st.tabs([f"📥 البلاغات المفتوحة ({len(open_tickets)})", f"✅ سجل البلاغات المنجزة ({len(closed_tickets)})"])
+        sub_tab1, sub_tab2, sub_tab3 = st.tabs([
+            f"📥 البلاغات المفتوحة ({len(open_tickets)})", 
+            f"✅ سجل البلاغات المنجزة ({len(closed_tickets)})",
+            f"📋 جدول جميع الأعطال ({len(tickets_list)})"
+        ])
 
         with sub_tab1:
             if not open_tickets:
@@ -281,7 +284,7 @@ with tab_it:
                     ticket_id = t.get('id')
                     ticket_dept = t.get('dept') or 'عام'
                     ticket_device = t.get('device') or 'جهاز'
-                    ticket_issue = t.get('issue') or 'لا توجد تفاصيل'
+                    ticket_issue = t.get('issue') or t.get('issue_desc') or 'لا توجد تفاصيل'
                     ticket_reporter = t.get('reporter')
                     ticket_time = str(t.get('created_at', ''))[:16]
                     
@@ -314,7 +317,7 @@ with tab_it:
                         "المُبلّغ": t.get("reporter"),
                         "القسم": t.get("dept"),
                         "الجهاز / النظام": t.get("device"),
-                        "تفاصيل العطل": t.get("issue"),
+                        "تفاصيل العطل": t.get("issue") or t.get("issue_desc"),
                         "المهندس المعالج": t.get("closed_by") or "غير محدد",
                         "وقت الإغلاق": str(t.get("closed_at", ""))[:16]
                     })
@@ -328,6 +331,35 @@ with tab_it:
                     file_name=f"IT_Maintenance_Report_{datetime.now().strftime('%Y-%m-%d')}.csv",
                     mime="text/csv"
                 )
+
+        with sub_tab3:
+            st.markdown("### 📊 عرض كافة الأعطال والبلاغات (السجل الشامل)")
+            if tickets_list:
+                formatted_all = []
+                for t in tickets_list:
+                    formatted_all.append({
+                        "رقم البلاغ": t.get("id"),
+                        "المُبلّغ": t.get("reporter"),
+                        "القسم": t.get("dept"),
+                        "الجهاز / النظام": t.get("device"),
+                        "تفاصيل العطل": t.get("issue") or t.get("issue_desc"),
+                        "الحالة": "مفتوحة 📥" if str(t.get("status", "Open")).strip().lower() in ["open", "pending", ""] else "منجزة ✅",
+                        "المهندس المعالج": t.get("closed_by") or "قيد الانتظار",
+                        "وقت البلاغ": str(t.get("created_at", ""))[:16]
+                    })
+                df_all = pd.DataFrame(formatted_all)
+                st.dataframe(df_all, use_container_width=True)
+                
+                csv_all = df_all.to_csv(index=False).encode('utf-8-sig')
+                st.download_button(
+                    label="📥 تحميل تقرير شامل لجميع الأعطال (CSV)",
+                    data=csv_all,
+                    file_name=f"All_IT_Tickets_{datetime.now().strftime('%Y-%m-%d')}.csv",
+                    mime="text/csv"
+                )
+            else:
+                st.info("لا توجد أي بلاغات مسجلة في قاعدة البيانات حتى الآن.")
+
     elif admin_pass != "":
         st.error("❌ رمز الأمان غير صحيح. يرجى إدخال الباسورد المخصص لمهندسي الدعم الفني.")
     else:
