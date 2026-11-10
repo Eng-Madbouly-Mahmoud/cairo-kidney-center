@@ -1,17 +1,16 @@
 import streamlit as st
-import warnings
-warnings.filterwarnings("ignore")
 from datetime import datetime
-from supabase import create_client, Client
 import pandas as pd
+from supabase import create_client, Client
+from supabase.client import ClientOptions
 import os
 
 # =========================================================
-# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي (خطوط واضحة)
+# ⚙️ 1. إعدادات الصفحة والتصميم الاحترافي الفاخر
 # =========================================================
 st.set_page_config(
-    page_title="مركز القاهرة لأمراض الكلى", 
-    page_icon="🩺", 
+    page_title="الدكتور صلاح حسب الله - مركز الدعم الفني - شركة إتقان",
+    page_icon="⚖️",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -19,10 +18,10 @@ st.set_page_config(
 st.markdown("""
     <style>
         :root { color-scheme: light !important; }
-        .stApp { background-color: #F8FAFC; font-family: 'Segoe UI', "Cairo", sans-serif; direction: rtl; }
+        .stApp { background-color: #F8FAFC; font-family: 'Cairo', sans-serif; direction: rtl; }
         
         .stTabs [data-baseweb="tab-list"] {
-            gap: 10px;
+            gap: 12px;
             background-color: #E2E8F0;
             padding: 8px;
             border-radius: 14px;
@@ -32,13 +31,13 @@ st.markdown("""
             height: 55px;
             background-color: #FFFFFF;
             border-radius: 10px;
-            font-size: 18px !important;
+            font-size: 16px !important;
             font-weight: 800 !important;
-            color: #1E293B !important;
-            box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+            color: #334155 !important;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.06);
         }
         .stTabs [aria-selected="true"] {
-            background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+            background: linear-gradient(135deg, #8C6239 0%, #634323 100%) !important;
             color: #FFFFFF !important;
         }
         
@@ -48,19 +47,10 @@ st.markdown("""
             font-weight: 800 !important;
         }
         
-        h2 { font-size: 24px !important; color: #0C4A6E !important; }
-        h3 { font-size: 22px !important; color: #1E293B !important; }
-        
-        .stTextInput label, .stSelectbox label, .stTextArea label {
-            font-size: 17px !important;
-            font-weight: bold !important;
-            color: #0F172A !important;
-        }
-        
         .stButton > button {
-            background: linear-gradient(135deg, #0284C7 0%, #0369A1 100%) !important;
+            background: linear-gradient(135deg, #8C6239 0%, #634323 100%) !important;
             color: #FFFFFF !important;
-            font-size: 17px !important;
+            font-size: 16px !important;
             font-weight: bold !important;
             border-radius: 10px !important;
             border: none !important;
@@ -71,347 +61,385 @@ st.markdown("""
         .metric-card {
             background: #FFFFFF;
             padding: 20px;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            border-radius: 14px;
+            box-shadow: 0 4px 14px rgba(0,0,0,0.05);
             text-align: center;
-            border-top: 5px solid #0284C7;
+            border-top: 5px solid #8C6239;
+            margin-bottom: 10px;
         }
 
-        .it-ticket-card {
+        .ticket-card-pro {
             background: #FFFFFF;
             border-radius: 12px;
             padding: 20px;
             margin-bottom: 16px;
-            border-right: 6px solid #0284C7;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+            border-right: 6px solid #8C6239;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
             text-align: right;
         }
-        .ticket-badge {
-            background: #E0F2FE;
-            color: #0369A1;
-            padding: 5px 12px;
-            border-radius: 20px;
-            font-size: 14px;
-            font-weight: bold;
-        }
+        .badge-pending { background: #FEF3C7; color: #D97706; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
+        .badge-solved { background: #DCFCE7; color: #166534; padding: 4px 12px; border-radius: 20px; font-size: 13px; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
 # =========================================================
-# 🔑 2. الربط بقاعدة بيانات Supabase
+# 🔒 إعدادات الاتصال وقاعدة البيانات سحابياً
 # =========================================================
-try:
-    SUPABASE_URL = st.secrets["SUPABASE_URL"].strip().rstrip("/")
-    SUPABASE_KEY = st.secrets["SUPABASE_KEY"].strip()
-except Exception:
-    st.error("⚠️ لم يتم العثور على مفاتيح الربط في Secrets. يرجى ضبط SUPABASE_URL و SUPABASE_KEY.")
-    st.stop()
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 
 @st.cache_resource
 def get_supabase_client() -> Client:
-    return create_client(SUPABASE_URL, SUPABASE_KEY)
+    return create_client(
+        SUPABASE_URL, 
+        SUPABASE_KEY,
+        options=ClientOptions(
+            postgrest_client_timeout=30,
+            headers={"apiKey": SUPABASE_KEY}
+        )
+    )
 
 supabase = get_supabase_client()
 
 # =========================================================
-# 📥 دوال قواعد البيانات
+# 📥 دالات التعامل مع جدول التذاكر
 # =========================================================
-def load_appointments():
+def load_data():
     try:
-        res = supabase.table("appointments").select("*").order("id", desc=True).execute()
-        return res.data or []
-    except Exception as e:
+        response = supabase.table("tickets").select("*").execute()
+        if response.data:
+            tickets = []
+            for row in response.data:
+                ticket = row.copy()
+                ticket['ID'] = row.get('id', row.get('Id', ''))
+                tickets.append(ticket)
+            return tickets
+        return []
+    except Exception:
         return []
 
-def insert_appointment(data):
+def insert_ticket(new_ticket):
     try:
-        supabase.table("appointments").insert(data).execute()
-        return True
-    except Exception as e:
-        st.error(f"خطأ في حفظ الحجز: {e}")
-        return False
-
-def load_it_tickets():
-    try:
-        res = supabase.table("tickets").select("*").order("id", desc=True).execute()
-        return res.data or []
-    except Exception as e:
-        st.error(f"خطأ في جلب التذاكر: {e}")
-        return []
-
-def insert_it_ticket(data):
-    try:
-        supabase.table("tickets").insert(data).execute()
-        return True
-    except Exception as e:
-        st.error(f"خطأ في تسجيل التذكرة: {e}")
-        return False
-
-def close_it_ticket_in_db(ticket_id, eng_name):
-    try:
-        update_data = {
-            "status": "Closed",
-            "closed_by": eng_name,
-            "closed_at": datetime.now().isoformat()
+        db_data = {
+            "id": int(new_ticket["ID"]),
+            "name": new_ticket["name"],
+            "dept": new_ticket["dept"],
+            "issue": new_ticket["issue"],
+            "status": "Pending (قيد الانتظار)",
+            "solved_by": "لم تُحل بعد ⏳",
+            "created_at": new_ticket["created_at"],
+            "updated_at": new_ticket["updated_at"]
         }
-        supabase.table("tickets").update(update_data).eq("id", ticket_id).execute()
+        supabase.table("tickets").insert(db_data).execute()
+        return True
+    except Exception:
+        return False
+
+def update_ticket_status_in_supabase(ticket_id, new_status, solved_by_user):
+    try:
+        current_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+        db_data = {
+            "status": new_status,
+            "solved_by": solved_by_user,
+            "updated_at": current_time
+        }
+        supabase.table("tickets").update(db_data).eq("id", int(ticket_id)).execute()
         return True
     except Exception as e:
-        st.error(f"خطأ أثناء إغلاق التذكرة: {e}")
+        st.error(f"حدث خطأ أثناء تحديث التذكرة: {e}")
         return False
 
 # =========================================================
-# 🏥 الهيدر الرئيسي للمستشفى (اللوجو الصحيح)
+# 📥 دالات التعامل مع جدول الاشتراكات (subscriptions_devices)
+# =========================================================
+def load_subscriptions():
+    cols_order = ["id", "الاشتراك", "النوع", "تاريخ_الاشتراك", "تاريخ_التجديد", "حالة_الاشتراك", "تاريخ_الانتهاء"]
+    try:
+        response = supabase.table("subscriptions_devices").select("*").order("id", desc=False).execute()
+        if response.data:
+            df = pd.DataFrame(response.data)
+            df = df.fillna("")
+            if "Id" in df.columns:
+                df = df.rename(columns={"Id": "id"})
+            existing_cols = [c for c in cols_order if c in df.columns]
+            if len(existing_cols) > 1:
+                return df[existing_cols]
+            return df
+        return pd.DataFrame(columns=cols_order)
+    except Exception:
+        return pd.DataFrame(columns=cols_order)
+
+def save_edited_data_to_supabase(edited_df):
+    try:
+        response = supabase.table("subscriptions_devices").select("id").execute()
+        old_ids = set([row['id'] for row in response.data]) if response.data else set()
+        current_ids = set()
+        
+        for _, row in edited_df.iterrows():
+            row_id = row.get("id")
+            db_data = {
+                "الاشتراك": str(row.get("الاشتراك", "")) if pd.notna(row.get("الاشتراك")) else "",
+                "النوع": str(row.get("النوع", "")) if pd.notna(row.get("النوع")) else "",
+                "تاريخ_الاشتراك": str(row.get("تاريخ_الاشتراك", "")) if pd.notna(row.get("تاريخ_الاشتراك")) else "",
+                "تاريخ_التجديد": str(row.get("تاريخ_التجديد", "")) if pd.notna(row.get("تاريخ_التجديد")) else "",
+                "حالة_الاشتراك": str(row.get("حالة_الاشتراك", "")) if pd.notna(row.get("حالة_الاشتراك")) else "",
+                "تاريخ_الانتهاء": str(row.get("تاريخ_الانتهاء", "")) if pd.notna(row.get("تاريخ_الانتهاء")) else ""
+            }
+            
+            if pd.notna(row_id) and str(row_id).strip() != "" and int(row_id) in old_ids:
+                supabase.table("subscriptions_devices").update(db_data).eq("id", int(row_id)).execute()
+                current_ids.add(int(row_id))
+            else:
+                if "id" in db_data: 
+                    del db_data["id"]
+                supabase.table("subscriptions_devices").insert(db_data).execute()
+        
+        deleted_ids = old_ids - current_ids
+        for d_id in deleted_ids:
+            if d_id is not None:
+                supabase.table("subscriptions_devices").delete().eq("id", d_id).execute()
+        return True
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء حفظ التعديلات سحابياً: {e}")
+        return False
+
+def process_excel_upload(uploaded_file):
+    try:
+        excel_df = pd.read_excel(uploaded_file)
+    except Exception as e:
+        st.error(f"حدث خطأ أثناء قراءة الملف: {e}")
+        return
+
+    required_cols = ["الاشتراك", "النوع", "تاريخ_الاشتراك", "تاريخ_التجديد", "حالة_الاشتراك", "تاريخ_الانتهاء"]
+    missing_cols = [col for col in required_cols if col not in excel_df.columns]
+    
+    if missing_cols:
+        st.error(f"❌ الملف المرفوع يفتقد إلى الأعمدة التالية: {missing_cols}")
+        st.info("⚠️ يرجى التأكد من أن شيت الإكسيل يحتوي على نفس أسماء أعمدة الجدول السحابي.")
+        return
+
+    st.write("📊 معاينة البيانات المرفوعة:")
+    st.dataframe(excel_df.head())
+    
+    if st.button("💾 تأكيد ورفع الملف إلى قاعدة البيانات السحابية", key="btn_confirm_excel"):
+        if save_edited_data_to_supabase(excel_df):
+            st.success("✅ تم رفع وتحديث شيت الإكسيل بنجاح في Supabase!")
+            st.rerun()
+
+# =========================================================
+# ⚙️ تهيئة الجلسة
+# =========================================================
+if 'tickets' not in st.session_state:
+    st.session_state.tickets = load_data()
+
+if 'next_id' not in st.session_state:
+    try:
+        if st.session_state.tickets:
+            ids = [int(t['ID']) for t in st.session_state.tickets if str(t.get('ID')).isdigit()]
+            st.session_state.next_id = max(ids) + 1 if ids else 101
+        else:
+            st.session_state.next_id = 101
+    except Exception:
+        st.session_state.next_id = 101
+
+# =========================================================
+# 🖼️ الهيدر الرئيسي مع اللوجو (logo.jpg)
 # =========================================================
 col_logo, col_banner = st.columns([1, 4])
+
 with col_logo:
-    possible_logos = ["logo.jpg", "لوجو.jpg", "logo_2.jpg", "لوجو_2.jpg", "logo.png", "لوجو.png"]
-    found_logo = next((f for f in possible_logos if os.path.exists(f)), None)
-    
-    if found_logo:
-        st.image(found_logo, use_container_width=True)
+    logo_filename = "logo.jpg"
+    if os.path.exists(logo_filename):
+        st.image(logo_filename, use_container_width=True)
     else:
-        st.markdown("<h1 style='text-align: center; font-size: 50px;'>🩺</h1>", unsafe_allow_html=True)
+        st.warning("⚠️ ملف اللوجو 'logo.jpg' غير موجود في مجلد المشروع.")
 
 with col_banner:
     st.markdown("""
-        <div style='background: linear-gradient(135deg, #E0F2FE 0%, #BAE6FD 100%); padding: 22px; border-radius: 14px; border-right: 10px solid #0369A1; text-align: right;'>
-            <h1 style='margin: 0; color: #0C4A6E !important; font-size: 28px;'>مركز القاهرة لأمراض الكلى</h1>
-            <p style='margin: 8px 0 0 0; color: #0369A1 !important; font-size: 16px; font-weight: bold;'>نظام إدارة الدعم الفني وتكنولوجيا المعلومات (IT Helpdesk)</p>
+        <div style='background-color: #8C6239; padding: 25px; border-radius: 12px; margin-bottom: 5px;'>
+            <h1 style='text-align: center; color: #F5EBE0; margin: 0; font-size: 30px; font-weight: bold;'>لوحة تكنولوجيا المعلومات والشبكات ⚙️</h1>
+            <p style='text-align: center; color: #E3D5CA; margin: 5px 0 0 0; font-size: 14px;'>المكتب الذكي لإدارة ومتابعة البلاغات والبنية التحتية</p>
         </div>
     """, unsafe_allow_html=True)
 
-st.markdown("<br>", unsafe_allow_html=True)
+st.markdown("""
+    <div style='background-color: #D5BDAF; padding: 10px; border-radius: 8px; margin-bottom: 25px; text-align: center;'>
+        <marquee direction='right' style='color: #4A3728; font-weight: bold; font-size: 16px; margin: 0;'>
+            ⚖️ شركة إتقان للمحاماة والاستشارات القانونية ترحب بكم .. يرجى تسجيل بلاغات الأعطال بدقة لسرعة توجيه مهندس الـ IT إليكم فوراً 🛠️
+        </marquee>
+    </div>
+""", unsafe_allow_html=True)
 
-# التبويبات الرئيسية
-tab_it, tab_records, tab_booking = st.tabs([
-    "⚙️ قسم تكنولوجيا المعلومات والدعم الفني",
-    "🩺 عيادة الأطباء والسجلات السحابية",
-    "📝 حجز مواعيد الفحص والعيادات"
+# =========================================================
+# 📑 التبويبات الرئيسية
+# =========================================================
+tab1, tab2, tab3 = st.tabs([
+    "📝 بوابة الموظفين والمستشارين (تسجيل عطل)", 
+    "🖥️ لوحة الإدارة والتحكم المهنية (IT Admin)",
+    "📊 جرد الاشتراكات والأسعار (Excel)"
 ])
 
-# =========================================================
-# 1️⃣ تبويب الدعم الفني (IT Helpdesk)
-# =========================================================
-with tab_it:
-    tickets_list = load_it_tickets()
-    
-    # تصنيف دقيق ومرن للبلاغات بناءً على قيمة status في قاعدة البيانات
-    open_tickets = [t for t in tickets_list if str(t.get("status", "Open")).strip().lower() in ["open", "pending", "قيد الانتظار", "active", ""]]
-    closed_tickets = [t for t in tickets_list if str(t.get("status", "")).strip().lower() in ["closed", "done", "تم الحل", "completed"]]
-
-    # نموذج تسجيل بلاغ جديد
-    st.markdown("### 📢 تسجيل بلاغ عطل أو مشكلة تقنية جديدة")
-    with st.form("it_ticket_form", clear_on_submit=True):
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            reporter = st.text_input("👤 اسم المُبلّغ / الطبيب / الموظف:")
-        with c2:
-            dept = st.selectbox("🏥 القسم أو الوحدة:", [
-                "وحدة الغسيل الكلوي (الدور الأول)", 
-                "وحدة الغسيل الكلوي (الدور الثاني)", 
-                "عيادة الكلى التخصصية", 
-                "الاستقبال والطوارئ", 
-                "المعمل وتحاليل الدم", 
-                "قسم الأشعة", 
-                "الصيدلية", 
-                "الإدارة والحسابات"
-            ])
-        with c3:
-            device = st.selectbox("💻 تصنيف الجهاز أو النظام:", [
-                "جهاز كمبيوتر مكتبي (PC)", 
-                "محطة عمل الغسيل الكلوي", 
-                "طابعة مستندات / باركود", 
-                "شبكة الإنترنت / الواي فاي", 
-                "شاشة العرض الطبية", 
-                "برنامج السيستم / السجلات الطبية", 
-                "أجهزة أخرى"
-            ])
-            
-        issue = st.text_area("📋 تفاصيل المشكلة أو العطل بدقة:")
-        submit_btn = st.form_submit_button("🚀 إرسال البلاغ الفوري لقسم الـ IT")
+# 1️⃣ التبويب الأول: تسجيل بلاغ جديد
+with tab1:
+    st.markdown("<h3 style='color: #8C6239;'>📥 تسجيل بلاغ عطل تقني جديد</h3>", unsafe_allow_html=True)
+    with st.form("ticket_form", clear_on_submit=True):
+        name = st.text_input("👤 اسم الموظف / المستشار بالكامل:")
+        dept = st.selectbox("🏢 القسم / الإدارة التابع لها:", ["قسم الاداره العليا", "بنك مصر", "بنك الاهلي", "التجاري الدولي", "الادمن", "إدارة عامة", "أخرى"])
+        issue = st.text_area("⚠️ وصف العطل أو المشكلة التقنية بالتفصيل:")
+        submit = st.form_submit_button("🚀 إرسال التذكرة الفورية")
         
-        if submit_btn:
-            if reporter and issue:
-                ticket_data = {
-                    "reporter": reporter,
-                    "dept": dept,
-                    "device": device,
-                    "issue": issue,
-                    "status": "Open"
-                }
-                if insert_it_ticket(ticket_data):
-                    st.success("✅ تم إرسال البلاغ بنجاح وجاري العمل عليه من قبل الفريق!")
+        if submit and name.strip() and issue.strip():
+            current_time = datetime.now().strftime("%Y-%m-%d %I:%M %p")
+            new_ticket = {
+                "ID": int(st.session_state.next_id), 
+                "name": name, 
+                "dept": dept, 
+                "issue": issue, 
+                "status": "Pending (قيد الانتظار)", 
+                "solved_by": "لم تُحل بعد ⏳", 
+                "created_at": current_time, 
+                "updated_at": "لم تُحدث بعد"
+            }
+            if insert_ticket(new_ticket):
+                st.session_state.tickets = load_data()
+                st.success(f"🎉 تم تسجيل بلاغك بنجاح! رقم التذكرة هو: #{st.session_state.next_id}")
+                st.session_state.next_id += 1
+                st.rerun()
+
+# 2️⃣ التبويب الثاني: لوحة الإدارة والتحكم الاحترافية
+with tab2:
+    st.markdown("<h3 style='color: #8C6239;'>🔐 لوحة الإدارة والتحكم في التذاكر (خاص بمهندس الـ IT)</h3>", unsafe_allow_html=True)
+    password = st.text_input("🔑 أدخل كلمة مرور الأدمن لفتح صلاحيات التعديل:", type="password", key="admin_pass")
+    
+    st.session_state.tickets = load_data()
+    tickets_list = st.session_state.tickets
+    
+    # تصفية التذاكر باحترافية عالية
+    pending_tickets = [t for t in tickets_list if "pending" in str(t.get("status", "")).lower() or "انتظار" in str(t.get("status", ""))]
+    solved_tickets = [t for t in tickets_list if "solved" in str(t.get("status", "")).lower() or "closed" in str(t.get("status", "")).lower() or "تم" in str(t.get("status", ""))]
+
+    # بطاقات مؤشرات الأداء الاحترافية (KPIs)
+    k1, k2, k3 = st.columns(3)
+    with k1:
+        st.markdown(f"""<div class="metric-card"><h4>⏳ قيد الانتظار (Pending)</h4><h2 style="color: #D97706; margin:0; font-size: 28px;">{len(pending_tickets)}</h2></div>""", unsafe_allow_html=True)
+    with k2:
+        st.markdown(f"""<div class="metric-card"><h4>✅ المنجزة (Solved / Closed)</h4><h2 style="color: #166534; margin:0; font-size: 28px;">{len(solved_tickets)}</h2></div>""", unsafe_allow_html=True)
+    with k3:
+        st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات</h4><h2 style="color: #8C6239; margin:0; font-size: 28px;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # تبويبات فرعية داخل لوحة التحكم لعرض البلاغات بمرونة
+    sub_tab1, sub_tab2, sub_tab3 = st.tabs([
+        f"⏳ البلاغات قيد الانتظار ({len(pending_tickets)})", 
+        f"✅ سجل البلاغات المنجزة ({len(solved_tickets)})", 
+        f"📋 جدول جميع الأعطال ({len(tickets_list)})"
+    ])
+
+    with sub_tab1:
+        if not pending_tickets:
+            st.success("🎉 رائع! لا توجد أي بلاغات معلقة قيد الانتظار حالياً.")
+        else:
+            for t in pending_tickets:
+                t_id = t.get('ID') or t.get('id')
+                t_name = t.get('name')
+                t_dept = t.get('dept')
+                t_issue = t.get('issue')
+                t_time = t.get('created_at')
+                
+                st.markdown(f"""
+                    <div class="ticket-card-pro">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="margin: 0; color: #8C6239;">🎫 تذكرة رقم #{t_id} - {t_dept}</h4>
+                            <span class="badge-pending">⏳ قيد الانتظار</span>
+                        </div>
+                        <p style="margin: 10px 0 5px 0; color: #1E293B;"><strong>👤 المُبلّغ:</strong> {t_name}</p>
+                        <p style="margin: 0 0 5px 0; color: #475569;"><strong>⚠️ وصف العطل:</strong> {t_issue}</p>
+                        <p style="margin: 0; color: #94A3B8; font-size: 12px;"><strong>🕒 وقت الإرسال:</strong> {t_time}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+    with sub_tab2:
+        if not solved_tickets:
+            st.info("💡 لا توجد تذاكر منجزة حتى الآن.")
+        else:
+            for t in solved_tickets:
+                t_id = t.get('ID') or t.get('id')
+                t_name = t.get('name')
+                t_dept = t.get('dept')
+                t_issue = t.get('issue')
+                t_status = t.get('status')
+                t_solver = t.get('solved_by')
+                t_update = t.get('updated_at')
+                
+                st.markdown(f"""
+                    <div class="ticket-card-pro" style="border-right-color: #166534;">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h4 style="margin: 0; color: #166534;">🎫 تذكرة رقم #{t_id} - {t_dept}</h4>
+                            <span class="badge-solved">✅ {t_status}</span>
+                        </div>
+                        <p style="margin: 10px 0 5px 0; color: #1E293B;"><strong>👤 المُبلّغ:</strong> {t_name}</p>
+                        <p style="margin: 0 0 5px 0; color: #475569;"><strong>⚠️ وصف العطل:</strong> {t_issue}</p>
+                        <p style="margin: 0 0 5px 0; color: #047857;"><strong>🛠️ تم الحل بواسطة:</strong> {t_solver} | <strong>🕒 وقت المعالجة:</strong> {t_update}</p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+    with sub_tab3:
+        if tickets_list:
+            st.dataframe(pd.DataFrame(tickets_list), use_container_width=True)
+        else:
+            st.info("💡 لا توجد تذاكر مسجلة.")
+
+    # منطقة صلاحيات الأدمن والتحديث
+    if password == "1234":
+        st.success("🔓 تم التحقق بنجاح! صلاحيات تحديث حالة التذاكر مفعّلة.")
+        st.markdown("---")
+        st.markdown("<h4 style='color: #8C6239;'>🛠️ لوحة عمليات وإغلاق التذاكر:</h4>", unsafe_allow_html=True)
+        
+        if tickets_list:
+            ticket_ids = [t['ID'] for t in tickets_list]
+            selected_ticket_id = st.selectbox("اختر رقم التذكرة لتحديث حالتها:", ticket_ids)
+            
+            new_status = st.selectbox("الحالة الجديدة:", ["Pending (قيد الانتظار)", "Solved (تم حل المشكلة)", "Closed (مغلقة نهائياً)"])
+            solved_by_input = st.text_input("اسم المهندس المسؤول:", value="مدبولي محمود")
+            
+            if st.button("💾 حفظ وتحديث حالة التذكرة سحابياً"):
+                if update_ticket_status_in_supabase(selected_ticket_id, new_status, solved_by_input):
+                    st.success(f"✅ تم تحديث التذكرة #{selected_ticket_id} بنجاح وحفظها في قاعدة البيانات!")
                     st.rerun()
-            else:
-                st.warning("⚠️ يرجى إدخال اسم المُبلّغ وتفاصيل المشكلة.")
+    elif password != "":
+        st.error("❌ كلمة المرور غير صحيحة. يمكنك الاستعراض فقط في وضع القراءة.")
+
+# 3️⃣ التبويب الثالث: جرد الاشتراكات والأسعار (رفع ملفات Excel)
+with tab3:
+    st.markdown("<h3 style='color: #8C6239;'>📊 جرد ومتابعة الاشتراكات والأسعار والأجهزة</h3>", unsafe_allow_html=True)
+    subscriptions_df = load_subscriptions()
+
+    if not subscriptions_df.empty:
+        col_kpi1, col_kpi2, col_kpi3 = st.columns(3)
+        with col_kpi1:
+            st.metric("📦 إجمالي البنود المسجلة", len(subscriptions_df))
+        with col_kpi2:
+            active_count = len(subscriptions_df[subscriptions_df["حالة_الاشتراك"].str.contains("ساري|مفعل|نشط|ضروري", case=False, na=False)])
+            st.metric("🟢 الاشتراكات الفعالة", active_count)
+        with col_kpi3:
+            inactive_count = len(subscriptions_df) - active_count
+            st.metric("⚪ البنود الأخرى", inactive_count)
+        st.markdown("---")
+
+    st.markdown("#### 📋 جدول الاشتراكات والأسعار الحالي:")
+    if not subscriptions_df.empty:
+        st.dataframe(subscriptions_df, use_container_width=True)
+    else:
+        st.info("💡 لا توجد بيانات مسجلة حالياً في جدول الاشتراكات.")
 
     st.markdown("---")
-    
-    # 🔐 لوحة التحكم الخاصة بالمهندسين
-    st.markdown("### 🛠️ بوابة تحكم مهندسي الـ IT (متابعة وإغلاق البلاغات)")
-    
-    admin_pass = st.text_input("🔒 أدخل رمز الأمان السري الخاص بالمهندسين للتحكم:", type="password", placeholder="أدخل الباسورد هنا...")
-    
-    if admin_pass == "2026":
-        st.success("🔓 تم تسجيل الدخول بنجاح لصلاحيات مهندسي الدعم الفني.")
-        
-        # إحصائيات سريعة (KPIs)
-        k1, k2, k3 = st.columns(3)
-        with k1:
-            st.markdown(f"""<div class="metric-card"><h4>📥 البلاغات المفتوحة</h4><h2 style="color: #0284C7; margin:0; font-size: 28px;">{len(open_tickets)}</h2></div>""", unsafe_allow_html=True)
-        with k2:
-            st.markdown(f"""<div class="metric-card"><h4>✅ البلاغات المنجزة</h4><h2 style="color: #10B981; margin:0; font-size: 28px;">{len(closed_tickets)}</h2></div>""", unsafe_allow_html=True)
-        with k3:
-            st.markdown(f"""<div class="metric-card"><h4>📊 إجمالي البلاغات</h4><h2 style="color: #475569; margin:0; font-size: 28px;">{len(tickets_list)}</h2></div>""", unsafe_allow_html=True)
+    st.markdown("#### 📁 تحديث أو استبدال البيانات عبر ملف Excel:")
+    uploaded_excel = st.file_uploader(
+        "اختر ملف Excel (.xlsx) يحتوي على الأعمدة المطابقة للجدول:",
+        type=["xlsx"],
+        key="excel_uploader_subscriptions"
+    )
 
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        sub_tab1, sub_tab2, sub_tab3 = st.tabs([
-            f"📥 البلاغات المفتوحة ({len(open_tickets)})", 
-            f"✅ سجل البلاغات المنجزة ({len(closed_tickets)})",
-            f"📋 جدول جميع الأعطال ({len(tickets_list)})"
-        ])
-
-        with sub_tab1:
-            if not open_tickets:
-                st.success("🎉 ممتاز! لا توجد أي أعطال مفتوحة حالياً، جميع الأجهزة تعمل بكفاءة.")
-            else:
-                selected_engineer = st.selectbox("👷 اختر اسم مهندس الدعم الفني القائم بالحل:", ["م/ مدبولي محمود", "م/ مارسيلينو مجدي"])
-                st.markdown("<br>", unsafe_allow_html=True)
-                
-                for t in open_tickets:
-                    ticket_id = t.get('id')
-                    ticket_dept = t.get('dept') or 'عام'
-                    ticket_device = t.get('device') or 'جهاز'
-                    ticket_issue = t.get('issue') or t.get('issue_desc') or 'لا توجد تفاصيل'
-                    ticket_reporter = t.get('reporter')
-                    ticket_time = str(t.get('created_at', ''))[:16]
-                    
-                    st.markdown(f"""
-                        <div class="it-ticket-card">
-                            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap;">
-                                <h4 style="margin: 0; color: #0284C7; font-size: 18px;">🎫 تذكرة رقم #{ticket_id} - {ticket_device}</h4>
-                                <span class="ticket-badge">القسم: {ticket_dept}</span>
-                            </div>
-                            <p style="margin: 12px 0 6px 0; color: #334155; font-size: 15px;"><strong>👤 المُبلّغ:</strong> {ticket_reporter}</p>
-                            <p style="margin: 0 0 10px 0; color: #475569; font-size: 15px;"><strong>📋 تفاصيل العطل:</strong> {ticket_issue}</p>
-                            <p style="margin: 0; color: #94A3B8; font-size: 13px;"><strong>🕒 وقت البلاغ:</strong> {ticket_time}</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    
-                    if st.button(f"✔️ إغلاق التذكرة #{ticket_id} بواسطة ({selected_engineer})", key=f"close_btn_{ticket_id}"):
-                        if close_it_ticket_in_db(ticket_id, selected_engineer):
-                            st.success(f"تم إغلاق التذكرة #{ticket_id} بنجاح بواسطة المهندس ({selected_engineer})!")
-                            st.rerun()
-                    st.markdown("---")
-
-        with sub_tab2:
-            if not closed_tickets:
-                st.info("لا توجد تذاكر مغلقة حتى الآن.")
-            else:
-                formatted_closed = []
-                for t in closed_tickets:
-                    formatted_closed.append({
-                        "رقم البلاغ": t.get("id"),
-                        "المُبلّغ": t.get("reporter"),
-                        "القسم": t.get("dept"),
-                        "الجهاز / النظام": t.get("device"),
-                        "تفاصيل العطل": t.get("issue") or t.get("issue_desc"),
-                        "المهندس المعالج": t.get("closed_by") or "غير محدد",
-                        "وقت الإغلاق": str(t.get("closed_at", ""))[:16]
-                    })
-                df_closed = pd.DataFrame(formatted_closed)
-                st.dataframe(df_closed, use_container_width=True)
-
-                csv_data = df_closed.to_csv(index=False).encode('utf-8-sig')
-                st.download_button(
-                    label="📥 تحميل تقرير الصيانة والبلاغات المنجزة (CSV)",
-                    data=csv_data,
-                    file_name=f"IT_Maintenance_Report_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                    mime="text/csv"
-                )
-
-        with sub_tab3:
-            st.markdown("### 📊 عرض كافة الأعطال والبلاغات (السجل الشامل)")
-            if tickets_list:
-                formatted_all = []
-                for t in tickets_list:
-                    formatted_all.append({
-                        "رقم البلاغ": t.get("id"),
-                        "المُبلّغ": t.get("reporter"),
-                        "القسم": t.get("dept"),
-                        "الجهاز / النظام": t.get("device"),
-                        "تفاصيل العطل": t.get("issue") or t.get("issue_desc"),
-                        "الحالة": "مفتوحة 📥" if str(t.get("status", "Open")).strip().lower() in ["open", "pending", ""] else "منجزة ✅",
-                        "المهندس المعالج": t.get("closed_by") or "قيد الانتظار",
-                        "وقت البلاغ": str(t.get("created_at", ""))[:16]
-                    })
-                df_all = pd.DataFrame(formatted_all)
-                st.dataframe(df_all, use_container_width=True)
-                
-                csv_all = df_all.to_csv(index=False).encode('utf-8-sig')
-                st.download_button(
-                    label="📥 تحميل تقرير شامل لجميع الأعطال (CSV)",
-                    data=csv_all,
-                    file_name=f"All_IT_Tickets_{datetime.now().strftime('%Y-%m-%d')}.csv",
-                    mime="text/csv"
-                )
-            else:
-                st.info("لا توجد أي بلاغات مسجلة في قاعدة البيانات حتى الآن.")
-
-    elif admin_pass != "":
-        st.error("❌ رمز الأمان غير صحيح. يرجى إدخال الباسورد المخصص لمهندسي الدعم الفني.")
-    else:
-        st.info("🔒 لوحة تحكم المهندسين محمية. يرجى إدخال رمز الأمان بالأعلى لعرض التذاكر وإدارتها.")
-
-# =========================================================
-# 2️⃣ تبويب سجلات المرضى والعيادات
-# =========================================================
-with tab_records:
-    st.markdown("### 📋 سجلات المرضى والمواعيد المسجلة بالسحابة")
-    apps = load_appointments()
-    if apps:
-        df_apps = pd.DataFrame(apps)[["id", "patient_name", "phone", "clinic_type", "notes", "created_at"]]
-        df_apps.columns = ["رقم الملف", "اسم المريض", "رقم الهاتف", "العيادة / الخدمة", "ملاحظات طبية", "تاريخ التسجيل"]
-        st.dataframe(df_apps, use_container_width=True)
-        
-        csv_apps = df_apps.to_csv(index=False).encode('utf-8-sig')
-        st.download_button(
-            label="📥 تحميل سجلات المرضى والمواعيد (CSV)",
-            data=csv_apps,
-            file_name=f"Patients_Appointments_{datetime.now().strftime('%Y-%m-%d')}.csv",
-            mime="text/csv"
-        )
-    else:
-        st.info("لا توجد مواعيد مسجلة حتى الآن.")
-
-# =========================================================
-# 3️⃣ تبويب حجز موعد جديد
-# =========================================================
-with tab_booking:
-    st.markdown("### 📝 حجز كشف أو جلسة غسيل جديدة")
-    with st.form("book_appointment_form", clear_on_submit=True):
-        col_p1, col_p2 = st.columns(2)
-        with col_p1:
-            p_name = st.text_input("اسم المريض الثلاثي:")
-            p_clinic = st.selectbox("نوع الكشف / القسم:", ["وحدة الغسيل الكلوي", "عيادة الكلى التخصصية", "فحوصات الباطنة", "متابعة ما بعد الزراعة"])
-        with col_p2:
-            p_phone = st.text_input("رقم الهاتف للتواصل:")
-            p_notes = st.text_area("تاريخ الحالة أو ملاحظات التحويل:")
-            
-        submit_app = st.form_submit_button("💾 تأكيد وحفظ الحجز السحابي")
-        if submit_app:
-            if p_name and p_phone:
-                app_data = {
-                    "patient_name": p_name,
-                    "phone": p_phone,
-                    "clinic_type": p_clinic,
-                    "notes": p_notes,
-                    "status": "Confirmed"
-                }
-                if insert_appointment(app_data):
-                    st.success("✅ تم حفظ ملف الحجز بنجاح!")
-                    st.rerun()
-            else:
-                st.warning("⚠️ يرجى إدخال اسم المريض ورقم الهاتف.")
+    if uploaded_excel is not None:
+        process_excel_upload(uploaded_excel)
